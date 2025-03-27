@@ -6,7 +6,7 @@ const User = require("../Models/User");
 
 const stripeWebhooks = async (req,res,next)=>{
 
-    const sig = request.headers['stripe-signature'];
+    const sig = req.headers['stripe-signature'];
 
     let event;
   
@@ -14,7 +14,7 @@ const stripeWebhooks = async (req,res,next)=>{
       event = stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     }
     catch (err) {
-      response.status(400).send(`Webhook Error: ${err.message}`);
+      res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
      // Handle the event
@@ -72,7 +72,7 @@ const stripeWebhooks = async (req,res,next)=>{
    }
 
    // Return a response to acknowledge receipt of the event
-  response.json({received: true});
+  res.json({received: true});
     }
   catch(err){
     console.log("Error in stripe webhooks",err);
