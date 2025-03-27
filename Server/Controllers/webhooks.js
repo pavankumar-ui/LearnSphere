@@ -60,6 +60,7 @@ const stripeWebhooks = async (req,res,next)=>{
         }
     
         const session = sessions.data[0]; // Take the first session if multiple
+        console.log("✅ Checkout Session Fetched:", session.id);
         const paymentId = session.metadata?.paymentId;
     
         if (!paymentId) {
