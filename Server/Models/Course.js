@@ -35,6 +35,7 @@ const courseSchema = new mongoose.Schema({
       {
         userId:{type:String,ref:"User"},
         rating:{type:Number,min:1,max:5},
+        thoughts:{type:String,default:""}
       }
     ],
     instructor:{type:String,ref:"User",required:true},
