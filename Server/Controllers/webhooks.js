@@ -26,10 +26,12 @@ const stripeWebhooks = async (req,res,next)=>{
                 const paymentIntent = event.data.object;
                   const paymentIntentId = paymentIntent.id;
 
+
+                  //to get session MetaData//
                     const session = await stripe.checkout.sessions.list({
                      payment_intent:paymentIntentId,
                })
-               const { paymentId } = paymentIntent.metadata;
+               const { paymentId } = session.data[0].metadata;
 
       const paymentData = await Payment.findById(paymentId);
       const userData = await User.findById(paymentData.userId);

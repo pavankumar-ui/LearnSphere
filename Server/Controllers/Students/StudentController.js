@@ -39,13 +39,15 @@ const coursePaymentService = async (req,res,next)=>{
   
         const {courseId} = req.body;
 
-        const origin = req.headers.origin;
+        const origin = req.headers.origin || process.env.ORIGIN;
 
         const studentId =req.user._id;
 
         const userData = await User.findById(studentId);
         const courseData = await Course.findById(courseId);
-        const totalAmount = Math.round(courseData.coursePrice + (courseData.coursePrice * process.env.STRIPE_GST_AMOUNT));
+        const gstAmount = parseFloat(process.env.STRIPE_GST_AMOUNT) || 0;
+    const totalAmount = Math.round(courseData.coursePrice * (1 + gstAmount));
+
 
 
         if(!userData || !courseData){
@@ -93,6 +95,8 @@ console.log("TotalAmount:", totalAmount);
             cancel_url:`${origin}`,
             line_items,
             mode:"payment",
+            customer_email: userData.email, // Include email
+              billing_address_collection: "required", // Ensure address collection
             metadata:{
               paymentId:newCoursePayment._id.toString()
             }  
