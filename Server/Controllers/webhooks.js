@@ -18,15 +18,18 @@ const stripeWebhooks = async (req,res,next)=>{
     }
 
      // Handle the event
-  switch (event.type) {
-    case 'payment_intent.succeeded':{
-      const paymentIntent = event.data.object;
-      const paymentIntentId = paymentIntent.id;
 
-      const session = await stripe.checkout.sessions.list({
-        payment_intent:paymentIntentId,
-      })
-      const {paymentId} = session.data[0].metadata;
+     try{
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+        {
+                const paymentIntent = event.data.object;
+                  const paymentIntentId = paymentIntent.id;
+
+                    const session = await stripe.checkout.sessions.list({
+                     payment_intent:paymentIntentId,
+               })
+               const { paymentId } = paymentIntent.metadata;
 
       const paymentData = await Payment.findById(paymentId);
       const userData = await User.findById(paymentData.userId);
@@ -40,8 +43,6 @@ const stripeWebhooks = async (req,res,next)=>{
         
             paymentData.paymentStatus = "completed";
             await paymentData.save();
-
-
 
          break;
     }
@@ -65,11 +66,18 @@ const stripeWebhooks = async (req,res,next)=>{
     // ... handle other event types
     default:
       console.log(`Unhandled event type ${event.type}`);
+       
    }
 
    // Return a response to acknowledge receipt of the event
   response.json({received: true});
+    }
+  catch(err){
+    console.log("Error in stripe webhooks",err);
+    return res.status(500).json({
+      message:"Internal Server Error",
+      success:false,
+    });
+   }
 }
-
-
 module.exports = stripeWebhooks;
