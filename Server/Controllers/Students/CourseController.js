@@ -1,5 +1,6 @@
 const Course = require('../../Models/Course');
 const Payment = require('../../Models/Payment');
+const CommonServerError = require('../../Utils/CommonServerError');
 
 
 //to display in course list student dashboard//
@@ -8,6 +9,7 @@ try{
       
     const courses = await Course.find({isPublished:true})
                                 .select(['-courseContent','-moduleContent'])
+                                .sort({createdAt:-1})
                                 .populate({path:"instructor"});
 
                                 return res.status(200).json({
@@ -17,10 +19,7 @@ try{
                                 });
 
 }catch(err){
-    return res.status(500).json({
-        message:err.message,
-        success:false,
-    });
+    CommonServerError(err, req, res, next);
 }
 }
 
@@ -52,10 +51,7 @@ const getCourseDetailById = async (req,res,next)=>{
               
     }
     catch(err){
-        return res.status(500).json({
-            message:err.message,
-            success:false
-        });
+        CommonServerError(err, req, res, next);
     }
 }
 

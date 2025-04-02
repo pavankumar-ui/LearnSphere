@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect,useContext } from "react";
 import { Link } from "react-router-dom";
 import { assets } from "../../assets/assets/assets";
 import { dummyEducatorData } from "../../assets/assets/assets";
-import { AppContext } from "../../context/appContext";
+import { AppContext } from "../../context/AppContext.jsx";
+import { AuthContext } from "../../context/auth-context/index.jsx";
 
 
 const Navbar = () => {
   const educatorData = dummyEducatorData;
   const [isOpen, setIsOpen] = useState(false);
   const dropDownRef = useRef(null);
+  const {user} = useContext(AuthContext);
 
   const {navigate} = useContext(AppContext);
 
@@ -39,7 +41,10 @@ const Navbar = () => {
       {/* User Profile Dropdown */}
       <div className="relative flex items-center gap-5 text-gray-500" ref={dropDownRef}>
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setIsOpen((prev) => !prev)}>
-          <img src={assets.user_profile_icon} alt="user_icon" className="w-12 h-12 rounded-full border border-gray-300" />
+          {user && user?.profileImage ?(
+            <img src={user?.profileImage} alt="user_icon" className="w-12 h-12 rounded-full border border-gray-300" />
+          ):
+          (<img src={assets.user_profile_icon} alt="user_icon" className="w-12 h-12 rounded-full border border-gray-300" /> )}
         </div>
 
         {/* Dropdown Menu (Inside Profile Container) */}

@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { assets } from '../../assets/assets/assets'
-import { AppContext } from '../../context/appContext';
+import { AppContext } from '../../context/AppContext.jsx';
 import { NavLink } from 'react-router-dom';
 const SideMenu = () => {
 
@@ -9,7 +9,6 @@ const SideMenu = () => {
   const menuItems = [
               {name: 'Dashboard', path: '/instructor', icon: assets.home_icon},
               {name: 'Add Course', path: '/instructor/add-course', icon: assets.add_icon},
-              {name: 'Student Enrolled', path: '/instructor/student-enrolled', icon: assets.person_tick_icon},
   ];
 
 

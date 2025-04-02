@@ -1,10 +1,10 @@
 import React,{useState,useEffect,useContext} from 'react'
-import { createContext } from 'react'
-import { dummyCourses } from '../assets/assets/assets';
+import { createContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import humanizeDuration from 'humanize-duration'
 import { AuthContext } from './auth-context';
-import {loadStripe} from '@stripe/stripe-js';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 
 export const AppContext = createContext();
@@ -13,20 +13,39 @@ export const AppContextProvider = (props) =>{
 
 const currency = import.meta.env.VITE_CURRENCY
 const navigate = useNavigate();
-
-const { user } = useContext(AuthContext); 
-
+const { user,token} = useContext(AuthContext); 
 const [allCourses,setAllCourses] = useState([])
 const [isInstructor,setIsInstructor] = useState(false)
+const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(true);
 const [enrolledCourses,setEnrolledCourses] = useState([])
 const [progress,setProgress] = useState(0);
 const backend_url = import.meta.env.VITE_BACKEND_URL;
 
-//to fetch all courses //
 
-const fetchAllCourses = async()=>{
-    setAllCourses(dummyCourses)
-}
+
+
+//to fetch all courses //
+const fetchAllCourses = async () => {
+    try {
+        const token = sessionStorage.getItem("token");  // Fetch from sessionStorage
+        const { data } = await axios.get(`${backend_url}/courses/`,{
+            headers: {
+                "Authorization": `Bearer ${token}`,   // Include token in headers
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (data.success) {
+            setAllCourses(data.courses);
+        } else {
+            toast.error(data.message);
+        }
+    } catch (err) {
+        //console.error("Error:", err);
+        toast.error(err.response?.data?.message || err.message);
+    }
+};
+
 
 //function to calculate avg rating of the course//
 
@@ -37,13 +56,13 @@ const calculateRating = (course)=>{
     course.courseRatings.forEach((rating)=>{
         totalRating += rating.rating;
     })
-    return totalRating / course.courseRatings.length
+    return Math.floor(totalRating / course.courseRatings.length)
 }
 
-//function to calculate lesson duration time //
-const calculateLessonTime = (chapter)=>{
+//function to calculate  duration time //
+const calculateLessonTime = (module)=>{
     let time =0;
-    chapter.chapterContent.map((lecture)=> time+= lecture.lectureDuration)
+    module.moduleContent.map((lesson)=> time+= lesson.lessonDuration)
     return humanizeDuration(time * 60 * 1000, {units:["h","m"]})
 }
 
@@ -52,79 +71,118 @@ const calculateLessonTime = (chapter)=>{
 
 const calculateCourseDuration = (course)=>{
     let time =0;
-    course.courseContent.map((chapter)=> chapter.chapterContent.map(
-        (lecture)=>time+= lecture.lectureDuration
+    course.courseContent.map(
+        (module)=> module.moduleContent.map(
+        (lesson)=> time += lesson.lessonDuration
     ))
     return humanizeDuration(time * 60 * 1000, {units:["h","m"]})
 }
 
 //fn to calculate total no of modules in the course //
 
-const calculateNoOfLecture = (course)=>{
-    let totalLectures = 0;
-    course.courseContent.foreach(chapter =>{
-        if(Array.isArray(chapter.chapterContent)){
-            totalLectures += chapter.chapterContent.length
-        }
-    });
-    return totalLectures;
-}
+const calculateNoOfLecture = (course) => {
+  return course?.courseContent?.reduce((total, module) => 
+      total + (Array.isArray(module.moduleContent) ? module.moduleContent.length : 0)
+  , 0) || 0;
+};
+
+
 
 
 
 //fetch user enrolled courses//
 const fetchUserEnrolledCourses = async ()=>{
-    setEnrolledCourses(dummyCourses)
+
+    console.log("fetchUserEnrolledCourses() called!");
+    
+    setLoadingEnrolledCourses(true);
+    try{       
+        const {data} = await axios.get(`${backend_url}/student/enrolled`,{
+            headers:{
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+        console.log("Fetched data:", data);
+
+        if(data.success){
+            setEnrolledCourses(data.enrolledCourses);
+            console.log("Enrolled courses:", data.enrolledCourses);
+        }
+        else{
+            toast.error(data.message);
+        }
+    }catch(err){
+    toast.error(err.message);
+    console.error("Error fetching enrolled courses:", err);
+}finally{
+    setLoadingEnrolledCourses(false);
+ }
 }
 
 
-const makePayment = async (course)=>{
-      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-      const body ={
-                amount: course.coursePrice,
-            currency: "inr",
-            payment_method_types: ["card","upi","netbanking"],
-            metadata:{
-                userId: user._id,
-                courseId: course._id,
-            },
-      }
-      const headers = {
-        "Content-Type":"application/json",
-      }
-      const response = await fetch(`${backend_url}/create-checkout-session`,{
-        method:"POST",
-        headers,
-        body:JSON.stringify(body)
-      });
 
-      const session = await response.json();
-      const result = session.redirectToCheckout({
-        sessionId: session.id,
-      });
+//update the mark as Completed button to completed //
+  const markLessonAsCompleted = async (lessonId) => {
+    console.log("marking lesson as completed", lessonId);
+    try {
 
-      if(result.error){
-        console.log(result.error.message);
+      if (!token) {
+        toast.error("please login to continue");
+        navigate("/auth");
       }
+
+      const { data } = await axios.post(`${backend_url}/student/progress`, {
+        courseId: id,
+        lessonId,
+        moduleId,
+      }, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      })
+
+      console.log("Response from server:", data);
+
+      if (data.success) {
+        toast.success(data.message);
+        await getCourseProgress();
+      } else {
+        toast.error(data.message);
+        console.error(data.message);
+      }
+    } catch (err) {
+      console.error("API error:", err.message);
+      toast.error(err.message);
     }
 
+  }
 
 
-// Update `isInstructor` when user logs in
-useEffect(() => {
-    if (user) {
-      setIsInstructor(user.role === "instructor"); // Set based on user role
-    }
-  }, [user]);
+  const updateUserProgress = (courseId, updatedProgress) => {
+    setEnrolledCourses(prevCourses =>
+        prevCourses.map(course =>
+            course._id === courseId ? { ...course, progress: updatedProgress } : course
+        )
+    );
+};
+
+
+
+
 
 
 useEffect(()=>{
     fetchAllCourses()
-    fetchUserEnrolledCourses()
 },[])
 
-// Add this to your AppContext provider component
-console.log("AppContext enrolledCourses:", enrolledCourses);
+useEffect(()=>{
+    if(user){
+        fetchUserEnrolledCourses();
+    }
+},[user]);
+
 
 
 const value= {
@@ -139,8 +197,13 @@ const value= {
           calculateNoOfLecture,
           progress,
           setProgress,
+          markLessonAsCompleted,
+          fetchUserEnrolledCourses,
           enrolledCourses,
-          makePayment,
+          backend_url,
+          loadingEnrolledCourses,
+          updateUserProgress,
+
 };
 
     return (

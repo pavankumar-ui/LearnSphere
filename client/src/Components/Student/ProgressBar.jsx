@@ -1,20 +1,37 @@
-import React, { useContext } from 'react'
-import { AppContext } from '../../context/appContext';
-
-const ProgressBar = () => {
-
-const {progress} = useContext(AppContext);
+import React, { useContext, useEffect, useState } from 'react';
+import { AppContext } from '../../context/AppContext.jsx';
+import { AuthContext } from '../../context/auth-context/index.jsx';
+import { Line } from 'rc-progress';
 
 
+const ProgressBar = ({ courseId,getCourseProgress }) => {
+  const { backend_url,calculateNoOfLecture,  
+    markLessonAsCompleted,
+    progressData,
+    setProgressdata } = useContext(AppContext);
+  const { token, user, isLoggedIn } = useContext(AuthContext);
+  const [progress, setProgress] = useState({ totalLessons: 0, lessonCompleted: 0 });
 
-    return (
-        <div className="bg-black flex flex-col items-start p-4 space-y-2">
-          <span className="text-gray-300 text-sm">{progress}% completed</span>
-          <div className="w-full bg-gray-700 h-3 rounded-full overflow-hidden">
-            <div className={`bg-blue-500 h-full`} style={{width: `${progress}%`}}></div>
-          </div>
-        </div>
-      );
-}
+  // Fetch progress for the given courseId
 
-export default ProgressBar
+  useEffect(() => {
+    if (courseId && progressData) {
+      getCourseProgress();
+    }
+  }, [courseId]);
+
+  return (
+    <div className="bg-black flex flex-col items-start p-4 space-y-2">
+      <Line
+        strokeWidth={2}
+        percent={progress.totalLessons > 0 ? (progress.lessonCompleted * 100) / progress.totalLessons : 0}
+        className="bg-gray-300 rounded-full"
+      />
+      <p className="text-gray-300 text-md md:text-md pt-2">
+        {progress.totalLessons > 0 ? ((progress.lessonCompleted * 100) / progress.totalLessons).toFixed(2) : 0} % Completed
+      </p>
+    </div>
+  );
+};
+
+export default ProgressBar;

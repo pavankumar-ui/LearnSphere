@@ -1,21 +1,30 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { assets } from '../../assets/assets/assets';
+import { AuthContext } from '../../context/auth-context';
+import { AppContext } from '../../context/AppContext';
 
-const Rating = ({ initialRating, onRate, onClose }) => {
+const Rating = ({ initialRating,courseTitle,InstructorName, onRate, onClose }) => {
   const [rating, setRating] = useState(initialRating || 0);
   const [thought, setThought] = useState('');
+  const {user,token} = useContext(AuthContext);
+  const {enrolledCourses} = useContext(AppContext);
 
   const handleRating = (value) => {
     setRating(value);
     if (onRate) onRate(value);
   }
 
+ 
+
+  
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Here you would typically send the rating and thought to your backend
-    if (onRate) onRate(rating, thought);
+    // typically send the rating and thought to your backend
+    if (onRate) onRate(rating,thought);
     if (onClose) onClose();
   }
+
 
   useEffect(() => {
     if (initialRating !== undefined) {
@@ -31,7 +40,7 @@ const Rating = ({ initialRating, onRate, onClose }) => {
           <button className="text-gray-500 cursor-pointer" onClick={onClose}>
             <img src={assets.cross_icon} alt="close_icon"/></button>
         </div>
-        <p className="text-gray-800 mt-2">Design of everyday things • Erling Haaland</p>
+        <p className="text-gray-800  font-semibold mt-2">{courseTitle} | {InstructorName}</p>
         
         <div className="flex items-center mt-4">
           {Array.from({ length: 5 }, (_, index) => {

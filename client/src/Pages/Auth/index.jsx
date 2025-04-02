@@ -2,7 +2,8 @@ import React, { useState,useContext,useEffect } from "react";
 import { Link } from "react-router-dom";
 import { assets } from "../../assets/assets/assets";
 import { AuthContext } from "../../context/auth-context";
-import { AppContext } from "../../context/appContext";
+import { AppContext } from "../../context/AppContext";
+import { toast } from "react-toastify";
 
 const AuthPage = () => {
 
@@ -77,14 +78,14 @@ const {signInFormData,
         if(LoginResponse.ok){
           const Logindata = await LoginResponse.json();
 
-          console.log("res from backend server",Logindata);
+          
           storeTokeninLS(Logindata.token);
 
           if(Logindata.role === "student"){
-            alert("Login Successfull");
+             toast.success("login successfull");
             navigate("/course-list");
           }else{
-            alert("Login Successfull");
+            toast.success("login successfull");
             navigate("/instructor")
           }
           
@@ -124,16 +125,13 @@ const {signInFormData,
     }   
   }
 
-
-
   useEffect(() => {
     if (authState === "signin") {
         navigate("/auth");  // Navigate after the state change
     }   
 }, [authState, navigate]);
 
-  console.log('signin form data',signInFormData);
-  //console.log('signup form data',signUpFormData);
+
 
 
   return (

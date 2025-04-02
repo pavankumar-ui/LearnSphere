@@ -16,8 +16,13 @@
   } 
 }
 
+
 ::-webkit-scrollbar{
   display: none;
+}
+
+.text-overwrite * {
+  color: white !important; /* Change this to any color */
 }
 
 .rich-text { font-size: 15px; color: #d2e1ff; }

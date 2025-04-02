@@ -3,15 +3,15 @@ const express = require("express");
 const cors  = require("cors");
 const  connectDB = require("./Config/DbConfig.js");
 const indexRoutes = require("./Routes/index");
-const cloudinary = require("./Config/cloudinary.js");
 const app = express();
 const port = process.env.PORT || 5001;
 
 
 const corsOptions={
-       origin: process.env.CLIENT_URL || "http://localhost:5173",
+       origin: process.env.CLIENT_URL,
        method: "GET,POST,PUT,DELETE",
        credentials:true,
+       allowedHeaders: ["Authorization", "Content-Type"], 
 }
 
  connectDB();

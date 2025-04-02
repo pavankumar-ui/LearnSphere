@@ -2,6 +2,7 @@ const cloudinary = require("../Config/cloudinary");
 const path = require("path");
 const Course = require("../Models/Course");
 const { uploadToS3 } = require("../Config/Multer");
+const CommonServerError = require("../Utils/CommonServerError");
 
 
 
@@ -11,9 +12,12 @@ const addNewCourse = async (req, res, next) => {
         const { courseData } = req.body;
         const InstructorId = req.user._id;
 
+        console.log("Received file:", req.file);
+    console.log("Received body:", req.body);
+
  // ✅ Access uploaded files (Buffer-based handling)
- const imageFile = req.files['image'] ? req.files['image'][0] : null;
- const lessonFile = req.files['file'] ? req.files['file'][0] : null;
+ const imageFile = req.files['courseThumbnail'] ? req.files['courseThumbnail'][0] : null;
+ const lessonFile = req.files['lessonFile'] ? req.files['lessonFile'][0] : null;
 
  if (!imageFile || !lessonFile) {
    return res.status(400).json({ message: "Image and lesson file are required", success: false });
@@ -71,10 +75,7 @@ const addNewCourse = async (req, res, next) => {
 
     } catch (err) {
         console.error("Upload Error:", err);
-        return res.status(500).json({
-            message: err.message,
-            success: false,
-        });
+        CommonServerError(err, req, res, next);
     }
 };
 
@@ -82,12 +83,19 @@ const addNewCourse = async (req, res, next) => {
 // ✅ Get Instructor's Courses in Dashboard //
 const getInstructorCourses = async(req,res,next)=>{
 try{
-      const instructor = req.user._id;
+      
+  
+       const instructor = req.user._id;
       console.log(instructor);
        const courses = await Course.find({instructor});
-                                  
 
-       
+       if(courses.length === 0){
+          return res.status(404).json({
+            message:"No courses found, please add a course",
+            success:false,
+            });
+      }
+                                  
        return res.status(200).json({
         message:"Courses fetched successfully",
         success:true,
@@ -95,10 +103,7 @@ try{
        });
                                 
 }catch(err){
- return res.status(500).json({
-        message:err.message,
-        success:false,
-    });
+  CommonServerError(err, req, res, next);
    }
 }
 

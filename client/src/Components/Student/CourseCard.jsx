@@ -1,6 +1,6 @@
 import React,{useContext} from 'react'
 import { assets } from '../../assets/assets/assets'
-import { AppContext } from '../../context/appContext'
+import { AppContext } from '../../context/AppContext'
 import { Link } from 'react-router-dom';
 
 
@@ -14,7 +14,7 @@ const CourseCard = ({course}) => {
       <img  className='w-full' src={course.courseThumbnail} alt="course-thumbnail" />
       <div className='p-3 text-left'>
         <h3 className='text-base font-semibold'>{course.courseTitle}</h3>
-        <p className='text-gray-300'>{course.educator.name}</p>
+        <p className='text-gray-300'>{course.instructor.name}</p>
         <div className='flex items-center space-x-2'>
           <p>{calculateRating(course)}</p>
           <div className='flex'>
@@ -24,8 +24,9 @@ const CourseCard = ({course}) => {
           </div>
           <p className='text-gray-300'>{course.courseRatings.length}</p>
         </div>
-        <p className='text-base font-semibold text-gray-300'>{currency}{(course.coursePrice - course.discount * course.
-              coursePrice/ 100).toFixed(2)}</p>
+        <p className='text-base font-semibold text-gray-300'>
+          {course.coursePrice === 0 ? null : currency }
+          {(course?.coursePrice === 0 ? 'free' : course.coursePrice)}</p>
       </div>
     </Link>
   )

@@ -1,49 +1,133 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext,useRef } from "react";
 import { AppContext } from "../../context/AppContext";
 import Loading from "../../components/Student/Loading";
 import { assets } from "../../assets/assets/assets";
 import humanizeDuration from "humanize-duration";
-import ProgressBar from "../../Components/Student/ProgressBar";
-import Footer from "../../Components/Student/Footer";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import Rating from "../../Components/Student/Rating";
+import { AuthContext } from "../../context/auth-context";
+import { toast } from "react-toastify";
+import axios from "axios";
+import Footer from "../../Components/Student/Footer";
 
 const CourseDetails = () => {
-  
-  const { id, chapterId, lectureId } = useParams();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { token, user } = useContext(AuthContext);
+  const {
+    calculateRating,
+    calculateLessonTime,
+    currency,
+    backend_url,
+    fetchUserEnrolledCourses,
+    enrolledCourses,
+    getCourseProgress,
+    progress,
+    updateUserProgress,
+    setProgress,
+  } = useContext(AppContext);
+
   const [courseData, setCourseData] = useState(null);
   const [openContents, setOpenContents] = useState({});
   const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
-
+  const [loadingEnrollment, setLoadingEnrollment] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
 
-  // fx to handle  rating(feedback) popup modal//
-  const handleRatingSubmission = (rating, thought) => {
-    // Handle the submission logic here
-    console.log("Rating:", rating, "Thought:", thought);
-    // You might want to send this data to your backend
-    setShowRatingModal(true);
-  };
 
-  const {
-    allCourses,
-    calculateRating,
-    calculateCourseDuration,
-    calculateLessonTime,
-    calculateNoOfLecture,
-    currency,
-    navigate,
-    makePayment,
-  } = useContext(AppContext);
 
+  //display the cours details//
   const fetchCourseData = async () => {
-    const findCourse = allCourses.find((course) => course._id === id);
-    setCourseData(findCourse);
+    try {
+      const { data } = await axios.get(`${backend_url}/courses/students/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (data.success) {
+        setCourseData(data.courseDetail);
+        const isEnrolled = data.courseDetail.enrolledStudents.includes(user?._id);
+        setIsAlreadyEnrolled(isEnrolled);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to load course");
+    } finally {
+      setLoadingEnrollment(false);
+    }
   };
 
-  useEffect(() => {
-    fetchCourseData();
-  }, [allCourses]);
+
+  //to handle payment and enrollment//
+  const handleEnrollment = async () => {
+    try {
+      if (!user) {
+        navigate("/login");
+        return toast.error("Please login to continue");
+      }
+
+      if (courseData.coursePrice === 0) {
+        const { data } = await axios.put(
+          `${backend_url}/student/free-enrollment`,
+          { courseId: id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (data.success) {
+          await fetchCourseData();
+          toast.success("Enrolled successfully!");
+        }
+      } else {
+        const { data } = await axios.post(
+          `${backend_url}/student/payment`,
+          { courseId: id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (data.session_url) {
+          const paymentWindow = window.open(data.session_url, "_blank");
+          const checkInterval = setInterval(async () => {
+            try {
+              const { data: course } = await axios.get(`${backend_url}/courses/${id}`);
+              if (course.courseDetail.enrolledStudents.includes(user._id)) {
+                clearInterval(checkInterval);
+                paymentWindow.close();
+                await fetchCourseData();
+                toast.success("Payment confirmed! Enrollment successful");
+              }
+            } catch (error) {
+              console.error("Payment verification failed:", error);
+            }
+          }, 3000);
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Enrollment failed");
+    }
+  };
+
+
+  //optional rating modal only when user is enrolled //
+  const handleRatingSubmit = async (rating, thoughts) => {
+    try {
+
+      if(!user || !token){
+          navigate("/auth");
+          toast.error("please login to continue");
+      }
+      const { data } = await axios.post(
+        `${backend_url}/student/rating`,
+        { courseId: id, rating, thoughts },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (data.success) {
+        await fetchCourseData();
+        setShowRatingModal(false);
+        toast.success("Rating submitted successfully!");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Rating submission failed");
+    }
+  };
+
 
   const toggleContent = (index) => {
     setOpenContents((prev) => ({
@@ -54,237 +138,260 @@ const CourseDetails = () => {
 
 
 
+  const fetchProgress = async () => {
+    try {
+        if (!token) {
+            toast.error("Please login to continue");
+            navigate("/auth");
+            return;
+        }
+
+        const { data } = await axios.post(
+            `${backend_url}/student/get-progress`, 
+            {}, 
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (data?.progressData) {
+            setProgress(data.progressData); 
+        } else {
+            setProgress(null);
+        }
+    } catch (error) {
+        console.error("Error fetching progress:", error);
+        toast.error("Failed to load progress");
+        setProgress(null);
+    } finally {
+        Loading(false);
+    }
+}
+
+  
+
+  const fetchCalled = useRef(false);
+  useEffect(() => {
+    if (!fetchCalled.current) {
+        fetchCalled.current = true;
+        fetchUserEnrolledCourses(); // ✅ Fetch only once
+        console.log("fetchUserEnrolledCourses called");
+        //console.log(fetchUserEnrolledCourses());
+    }
+    if (enrolledCourses) {
+      const isEnrolled = enrolledCourses.some(course => String(course._id) === String(id));
+        setIsAlreadyEnrolled(isEnrolled);
+    }
+}, [id,loadingEnrollment]);
+//enrolledCourses?.enrolledCourses,
 
 
-  //bg-gradient-to-b from-blue-950/30//
 
-  return courseData ? (
-    <>
-      <div className="flex md:flex-row flex-col-reverse gap-10 relative items-start justify-between md:px-36 px-8 md:pt-30 pt-20 text-left">
-        <div className="absolute top-0 left-0 w-full h-section-height -z-1 bg-gradient-to-t from-blue-950/30 "></div>
 
-        {/** left side */}
-        <div className="max-w-xl z-10 text-gray-300">
-          <h1 className="md:text-course-details-heading-large text-course-details-heading-small font-semibold text-white">
-            {courseData.courseTitle}
-          </h1>
-          <p
-            className="pt-4 md:text-base text-sm rich-text"
-            dangerouslySetInnerHTML={{
-              __html: courseData.courseDescription.slice(0, 260)
-            }}
-          ></p>
 
-          {/* Review and rating */}
+useEffect(() => {
+  fetchCourseData();
+},[]);
 
-          <div className="flex items-center space-x-2 pt-3 pb-1 text-sm">
-            <p>{calculateRating(courseData)}</p>
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <img
-                  key={i}
-                  src={
-                    i < Math.floor(calculateRating(courseData))
-                      ? assets.star
-                      : assets.star_blank
-                  }
-                  alt="star-rating"
-                  className="w-3.5 h-3.5"
-                />
-              ))}
-            </div>
-            <p className="text-amber-300">
-              {courseData.courseRatings.length}{" "}
-              {courseData.courseRatings.length > 1 ? "ratings" : "rating"}{" "}
-            </p>
-            <p>
-              ({courseData.enrolledStudents.length}{" "}
-              {courseData.enrolledStudents.length > 1 ? "learners" : "learner"})
-            </p>
+useEffect(() => {
+  if (token) {
+    fetchProgress();
+  }
+}, [token]);
 
-            {/* Rate the course by popup rating modal */}
-            {isAlreadyEnrolled ? (
-              <>
-                <div className="flex items-center space-x-2">
-                  <p>|</p>
-                  <button className="text-sky-500 text-md font-semibold md:text-sm px-1"
-                    onClick={() => setShowRatingModal(true)
-                    }>
-                    Rate This Course
-                  </button>
 
-                  {showRatingModal && (
-                    <Rating
-                      initialRating={0}
-                      onRate={handleRatingSubmission}
-                      onClose={() => setShowRatingModal(false)} />
-                  )}
+   
+{!loadingEnrollment && <Loading/>}
+  return (
+
+    <div className="max-w-820 px-4 py-8 mx-auto md:px-8 md:py-12">
+      {courseData && (
+        <>
+          {/* Course Header */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-200 mb-4">
+                {courseData.courseTitle}
+              </h1>
+              <div className="flex items-center gap-4 mb-6">
+                <span className="text-lg font-semibold">
+                  {calculateRating(courseData)}/5
+                </span>
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <img
+                      key={i}
+                      src={i < Math.floor(calculateRating(courseData)) 
+                        ? assets.star 
+                        : assets.star_blank}
+                      className="w-5 h-5"
+                      alt="rating"
+                    />
+                  ))}
                 </div>
-              </>) 
-              : null}
-          </div>
-          {/* end of rating popup modal */}
+                <span className="text-gray-600">
+                  ({courseData.courseRatings.length} ratings)
+                </span>
+               
+               {/* Instructor name and designation */}
+                <div className="flex flex-col items-center space-x-3 pt-3 pb-1">
+            {courseData && courseData.instructor?.profileImage ? (
 
-
-          {/* Instructor name and designation */}
-          <div className="flex items-center space-x-3 pt-3 pb-1">
-            <img
+              <img
+              src={courseData.instructor.profileImage}
+              alt="instructor-image"
+              className="w-12 h-12 rounded-full"
+            />
+            ):
+            (
+              <img
               src={assets.profile_img2}
               alt="instructor-image"
               className="w-12 h-12 rounded-full"
             />
+            ) }
+           
             <h3>
-              <span className="text-lg font-semibold text-white">Ronaldo</span>
+              <span className="text-lg font-semibold text-amber-500">{courseData.instructor.name}</span>
             </h3>
-            <p className="text-gray-400 text-sm">SDE-3,Uber Cab</p>
+            <p className="text-sky-400 text-sm">{courseData.instructor.designation},Uber Cab</p>
           </div>
 
-          {/* Display the progress bar  of overall course
-         if user is enrolled and authenticated, else display the enroll button  */}
-
-          {isAlreadyEnrolled ? (<ProgressBar />) : (
-            <>
-              <div className="flex flex-row items-center justify-between px-1 mt-5 mb-6 md:mt-1 mt-10">
-                <button
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold 
-                   py-3 px-6 rounded-md text-md"
-                   
-                   onClick={makePayment}
-                   
-                   >
-                  Enroll now for
-                  &nbsp; {currency} {Math.floor(courseData.coursePrice).toFixed(2)}
-                </button>
-              </div>
-            </>
+               
+              {/* Rating Section */}
+          {isAlreadyEnrolled && (
+            <div className="text-center mb-12">
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+               | Rate This Course
+              </button>
+            </div>
           )}
 
-          <div className="pt-8 text-white">
-            <h2 className="text-xl font-semibold">Course Content</h2>
-            {/* Module Wise Content*/}
-            <div className="pt-5">
-              {courseData.courseContent.map((chapter, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-300 mb-2 rounded"
+
+
+
+              </div>
+              
+              {/* Enrollment Button */}
+              { !loadingEnrollment && !isAlreadyEnrolled && (
+                <button
+                  onClick={handleEnrollment}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition"
                 >
-                  <div
-                    className="flex flex-center justify-between px-4 py-3 
-                       cursor-pointer select-none"
-                    onClick={() => {
-                      toggleContent(index);
-                    }}
-                  >
-                    {/* Lock the content if user is not loggedin or enrolled,
-                     if he's enrolled and loggedin then display 
-                     the content */}
+                  {courseData.coursePrice === 0 
+                    ? "Enroll For Free" 
+                    : `Enroll Now - ${currency}${courseData.coursePrice}`}
+                </button>
+              )}
 
-                    {isAlreadyEnrolled ? null: (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={assets.lock_icon}
-                            alt="lock-icon"
-                            className="w-8 h-8" />
-                        </div>
-                      </>
+              {/* Course Description */}
+              <div 
+                className="pt-4 md:text-base text-sm text-overwrite"
+                dangerouslySetInnerHTML={{ __html: courseData.courseDescription.slice(0,2500) }}
+              />
+            </div>
 
+            {/* Course Thumbnail */}
+            <div className="relative">
+              <img
+                src={courseData.courseThumbnail}
+                alt="Course thumbnail"
+                className="w-full h-96 object-cover rounded-xl shadow-lg"
+              />
+            </div>
+          </div>
+
+          {/* Course Content */}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">Course Content</h2>
+            
+            {courseData.courseContent.map((module, index) => (
+              <div key={index} className="mb-4 border rounded-lg">
+                <div
+                  className="p-4 bg-gray-50 flex justify-between items-center cursor-pointer"
+                  onClick={() => setOpenContents(prev => ({
+                    ...prev,
+                    [index]: !prev[index]
+                  }))}
+                >
+                  <div className="flex items-center gap-4">
+                    {!isAlreadyEnrolled && (
+                      <img src={assets.lock_icon} className="w-6 h-6" alt="locked" />
                     )}
-
-
-                    <div className="flex items-center gap-2">
-                      <img
+                    <img
                         src={assets.down_arrow_icon}
                         alt="arrow-icon"
                         className={`transform transform-transition 
                                 ${openContents[index] ? "rotate-180" : ""} `}
                       />
-                      <p className="font-medium md:text-base text-sm">
-                        {chapter.chapterTitle}
-                      </p>
-                    </div>
-                    <p className="text-sm md:text-default">
-                      {chapter.chapterContent.length} lessons-
-                      {calculateLessonTime(chapter)}
-                    </p>
+                    <h3 className="text-lg text-gray-800 font-semibold">{module.moduleTitle}</h3>
                   </div>
+                  <span className="text-gray-600">
+                    {module.moduleContent.length} lessons •{' '}
+                    {humanizeDuration(
+                      module.moduleContent.reduce((acc, lesson) => acc + lesson.lessonDuration, 0) * 60000,
+                      { units: ['h', 'm'] }
+                    )}
+                  </span>
+                </div>
 
-                  {/*Lesson Content*/}
-                  <div
-                    className={`overflow-hidden transtition-all duration-300  bg-white
-                  ${openContents[index] ? "max-h-96" : "max-h-0"}`}
-                  >
-                    <ul className="list-disc md:pl-10 pr-4 py-2 text-gray-950 border-t border-gray-300">
-                      {chapter.chapterContent.map((lecture, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-2 py-1 "
-                        >
-
-                          {/* lock the lesson content as well for unauthenticated and not enrolled user */ }
-                          {isAlreadyEnrolled ? 
-                          (
-                            <img
-                            src={assets.play_icon}
-                            alt="play-icon"
-                            className="w-4 h-4 mt-1 cursor-pointer"/>
-                          ):
-                          (
-                            <img
-                            src={assets.lock_icon}
-                            alt="lock-icon"
-                            className="w-2 h-2 mt-1"/>
-                          )
-                          }
-                       
-
-                          <div className="flex items-center justify-between w-full 
-                      text-gray-950 text-xs md:text-default">
-                            {isAlreadyEnrolled ? (
-                              <>
-                                <Link
-                                  to={`/player/${courseData._id}/modules/${chapter.chapterId}/lessons/${lecture.lectureId}`}>
-                                  {lecture.lectureTitle}
-                                </Link>
-                              </>
-
-                            ) : (<p>
-                              {lecture.lectureTitle}
-                            </p>)}
+                {/* Lessons List */}
+                <div className={`${openContents[index] ? 'max-h-[500px]' : 'max-h-0'} overflow-hidden transition-all`}>
+                  <div className="p-4 bg-white">
+                    {module.moduleContent.map((lesson, lessonId) => (
+                      <div key={lessonId} className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-4">
+                          {isAlreadyEnrolled ? (
+                            <Link
+                              to={`/player/${id}/modules/${module.moduleId}/lessons/${lesson.lessonId}`}
+                              className="flex items-center gap-2 text-blue-600 hover:underline"
+                            >
+                             {progress[index]?.progress?.lessonCompleted === progress[index]?.progress?.totalLessons ? (
+  <img src={assets.blue_tick_icon} className="w-5 h-5" alt="tick" />
+) : (
+  <img src={assets.play_icon} className="w-5 h-5" alt="play" />
+)}
 
 
-                            <div className="flex gap-2">
-                              <p>
-                                {humanizeDuration(
-                                  lecture.lectureDuration * 60 * 1000,
-                                  { units: ["h", "m"] }
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
+
+                              {lesson.lessonTitle} 
+                            </Link>
+                          ) : (
+                            <>
+                              <img src={assets.lock_icon} className="w-5 h-5" alt="locked" />
+                              <span className="text-gray-600">{lesson.lessonTitle}</span>
+                            </>
+                          )}
+                        </div>
+                        <span className="text-gray-500">
+                          {humanizeDuration(lesson.lessonDuration * 60000, { units: ['m'] })}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </div>
 
-        {/*right side*/}
-        <div className="flex items-center space-x-4 p-4 rounded-2xl w-fit">
-          <img
-            src={courseData.courseThumbnail}
-            alt="thumbnail"
-            className="w-full h-auto rounded-lg  object-cover"
-          />
-        </div>
-      </div>
-      <Footer />
-    </>
-  ) : (
-    <Loading />
+          
+
+          {/* Rating Modal */}
+          {showRatingModal && (
+            <Rating
+              initialRating={0}
+              courseTitle={courseData.courseTitle}
+              InstructorName={courseData.instructor.name}
+              onRate={handleRatingSubmit}
+              onClose={() => setShowRatingModal(false)}
+            />
+          )}
+
+          <Footer />
+        </>
+      )}
+    </div>
   );
 };
 

@@ -1,22 +1,48 @@
 import React, { useState, useContext, useEffect } from 'react'
-import { dummyCourses } from '../../assets/assets/assets'
 import Loading from '../../components/Student/Loading'
-import { AppContext } from '../../context/appContext'
+import { AppContext } from '../../context/AppContext.jsx'
 import { AuthContext } from '../../context/auth-context'
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
-  const courseList = dummyCourses;
-  const { navigate } = useContext(AppContext);
+  const { navigate,backend_url } = useContext(AppContext);
   const { isLoggedIn, user, token } = useContext(AuthContext);
 
   const [courses, setCourses] = useState(null);
   const [instructorName, setInstructorName] = useState({ name: "" });
 
   const fetchInstructorCourses = async () => {
-    setCourses(courseList);
+    
+    if(!token ||  !user){
+      navigate('/auth');
+    }
+
+    try{
+      const {data} = await axios.get(`${backend_url}/instructor/courses`,{
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+         },
+      });
+
+      console.log("Instructor Courses:", data);
+      if(data.success){
+        setCourses(data.courses);
+      }
+      else{
+        toast.error( "No courses found, please add a course");
+      }
+    }  
+      catch(err){
+      console.error("Error fetching instructor courses:", err);
+      toast.error(err.message || data?.message || "Failed to fetch courses");
+    }
+
+
   }
 
-
+  const courseList = courses;
 
   //console.log("User Name:", user.name);
 

@@ -2,7 +2,9 @@ const User = require("../Models/User.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const blackList = require("../Models/Blacklist.js");
+const cloudinary = require("../Config/cloudinary");
 const crypto = require("crypto");
+const CommonServerError = require("../Utils/CommonServerError.js");
 const { date } = require("joi");
 
 
@@ -36,14 +38,10 @@ const Register = async (req, res, next) => {
       success: true,
       user: registerData,
     });
-  } catch (error) {
-    console.log(error);
-    next(error);
-    return res
-      .status(500)
-      .json({ message: "Internal server error", success: false });
+  } catch (err) {
+    CommonServerError(err, req, res, next);
   }
-};
+}
 
 const Login = async (req, res, next) => {
   const email = req.body.email;
@@ -83,13 +81,8 @@ const Login = async (req, res, next) => {
       role: user.role,
       token: token,
     });
-  } catch (error) {
-    console.log(error);
-    next(error);
-    return res.status(500).json({
-      message: "Internal server error",
-      success: false,
-    });
+  } catch (err) {
+    CommonServerError(err, req, res, next);
   }
 };
 
@@ -121,12 +114,7 @@ const getProfileData = async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.log(err);
-    next(err);
-    return res.status(500).json({
-      message: "Internal server error",
-      success: false,
-    });
+    CommonServerError(err, req, res, next);
   }
 };
 
@@ -134,42 +122,73 @@ const updateProfileData = async (req, res, next) => {
   try {
     const updatedData = {};
 
+    // ✅ Fetch the user by ID
     const user = await User.findOne({ _id: req.user._id });
 
-    if (!user)
+    if (!user) {
       return res.status(404).json({
-        message: "user not found",
+        message: "User not found",
         success: false,
       });
+    }
 
+    // ✅ Append only the fields that have data
     if (req.body.name) updatedData.name = req.body.name;
     if (req.body.email) updatedData.email = req.body.email;
     if (req.body.college) updatedData.college = req.body.college;
-    if (req.body.company) updatedData.company = req.body.company;
-    if (req.body.profileImage) updatedData.profileImage = req.body.profileImage;
+    if (req.body.companyName) updatedData.companyName = req.body.companyName;
     if (req.body.designation) updatedData.designation = req.body.designation;
-    updatedData.updatedAt = Date.now();
 
+ const uploadToCloudinary = async (buffer) => {
+   return new Promise((resolve, reject) => {
+     const stream = cloudinary.uploader.upload_stream(
+       { resource_type: "image" },
+       (error, result) => {
+         if (error) return reject(error);
+         resolve(result);
+       }
+     );
+     stream.end(buffer);
+   });
+ };
+
+    // ✅ Handle image upload
+    if (req.file) {
+      const imageUrl = await uploadToCloudinary(req.file.buffer);  // ✅ Upload to Cloudinary
+      console.log("Cloudinary upload result:", imageUrl);
+    
+      // ✅ Assign the uploaded image URL to profileImage
+      if (imageUrl && imageUrl.secure_url) {
+        updatedData.profileImage = imageUrl.secure_url;  
+      } else {
+        console.error("Image upload failed. No URL returned.");
+      }
+    }
+    
+
+    // ✅ Use `findOneAndUpdate` with proper options
     const changedData = await User.findOneAndUpdate(
       { _id: req.user._id },
-      updatedData
+      { $set: updatedData },
+      { new: true, runValidators: true }
     );
-    await changedData.save();
 
+    // ✅ Send the updated profile data as response
     return res.status(200).json({
-      message: "User profile Updated Successfully",
+      message: "User profile updated successfully",
       success: true,
-      UpdatedData: changedData,
+      user: changedData,
     });
+
   } catch (err) {
-    console.log(err);
-    next(err);
-    return res.status(500).json({
-      message: "Internal server error",
+    console.error('Update Profile Error:', err);
+    res.status(500).json({
+      message: "Failed to update profile",
       success: false,
+      error: err.message
     });
   }
-};
+}
 
 const Logout = async (req, res, next) => {
   const token = req.headers.authorization;

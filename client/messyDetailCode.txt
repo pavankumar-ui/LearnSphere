@@ -1,0 +1,474 @@
+import React, { useState, useEffect, useContext } from "react";
+import { AppContext } from "../../context/AppContext";
+import Loading from "../../components/Student/Loading";
+import { assets } from "../../assets/assets/assets";
+import humanizeDuration from "humanize-duration";
+import Footer from "../../Components/Student/Footer";
+import { Link, useParams } from "react-router-dom";
+import Rating from "../../Components/Student/Rating";
+import { AuthContext } from "../../context/auth-context";
+import { toast } from "react-toastify";
+import axios from "axios";
+
+const CourseDetails = ({initialRating,progressData}) => {
+
+  const { id, moduleId, lessonId } = useParams();
+  const [courseData, setCourseData] = useState(null);
+  const [openContents, setOpenContents] = useState({});
+  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
+  const [loadingEnrollment, setLoadingEnrollment] = useState(true);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+
+
+  const { token, user } = useContext(AuthContext);
+
+  const {
+    
+    calculateRating,
+    calculateCourseDuration,
+    calculateLessonTime,
+    calculateNoOfLecture,
+    currency,
+    navigate,
+    backend_url,
+  } = useContext(AppContext);
+
+  const fetchCourseData = async () => {
+    try {
+      const { data } = await axios.get(`${backend_url}/courses/${id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      console.log("Fetched Course Data:", data.courseDetail);
+
+      //console.log("userId", user);
+
+      if (data.success) {
+        setCourseData(data.courseDetail);
+        // Update enrollment status on every fetch
+       const userEnrolled = data.courseDetail.enrolledStudents
+                                              .find((enrolled) => enrolled === user.id.toString());
+       console.log("user Enrolled", userEnrolled);
+        if(userEnrolled){ 
+          isAlreadyEnrolled(true);
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to load course");
+    }
+  };
+
+
+
+
+  // Check if the user is already enrolled in the course
+  const enrolledCourse = async () => {
+    try {
+      if (isAlreadyEnrolled) {
+        toast.success("You are already enrolled!");
+        return;
+      }
+
+      if (!token || !user) {
+        navigate("/login");
+        toast.error("Please login to continue");
+        return;
+      }
+
+      // Initiate payment
+      const { data: paymentData } = await axios.post(
+        `${backend_url}/student/payment`,
+        { courseId: courseData._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (paymentData.success && paymentData.session_url) {
+        // Open Stripe in new tab
+        const paymentWindow = window.open(paymentData.session_url, "_blank");
+
+        // Polling logic to check enrollment status
+        const enrollmentCheckInterval = setInterval(async () => {
+          try {
+            // 1. Re-fetch updated course data
+            const { data } = await axios.get(
+              `${backend_url}/courses/${courseData._id}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            // 2. Check if user is now enrolled
+            if (data.courseDetail.enrolledStudents.includes(user._id)) {
+              clearInterval(enrollmentCheckInterval);
+              setIsAlreadyEnrolled(true);
+              setCourseData(data.courseDetail); // Update with unlocked lessons
+              toast.success("Enrollment confirmed! Lessons unlocked");
+
+              // Close payment window if still open
+              if (!paymentWindow.closed) paymentWindow.close();
+            }
+          } catch (error) {
+            console.error("Enrollment check failed:", error);
+          }
+        }, 3000); // Check every 3 seconds
+
+        // Stop polling after 10 minutes
+        setTimeout(() => {
+          clearInterval(enrollmentCheckInterval);
+        }, 600000);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Enrollment failed");
+    }
+  };
+
+
+
+  const handleEnrollmentFree = async () => {
+
+    try {
+      if (!token || !user) {
+        navigate("/login");
+        toast.error("Please login to continue");
+        return;
+      }
+
+      // Update the course data with the user ID
+
+      if (courseData && courseData.courseContent.lessonLocked === true &&
+        courseData.coursePrice === 0) {
+
+
+          const {data} =await axios.put(`${backend_url}/student/free-enrollment`,{
+            courseId: courseData._id,
+            userId: user._id
+          },{
+            headers:{
+              Authorization: `Bearer ${token}`
+            }
+          })
+
+          if(data.success){
+            toast.success("Congrats,you have Enrolled the course successfully!");
+            setCourseData({
+              ...courseData,
+              lessonLocked: false,
+              enrolledStudents: [...courseData.enrolledStudents, user._id]
+            });
+            setIsAlreadyEnrolled(true);
+            return;
+          }else{
+            toast.error(err.response?.data?.message);
+          }
+
+
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message);
+    }
+
+  }
+
+  const handleRatingandThoughts = async (rating,thoughts) =>{
+
+    try{
+             const {data} = await axios.post(`${backend_url}/student/rating`,{
+              courseId:courseData._id,
+              rating,
+              thoughts
+             },{
+              headers:{
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json"
+              }
+             });
+  
+               if(data.success){
+                toast.success(data.message);
+                setShowRatingModal(false);
+               }else{
+                toast.error(data.message);
+               }
+    }catch(err){
+      toast.error(err.message);
+    }
+  
+  }
+
+
+
+
+
+  // Check if the user is already enrolled in the course
+  useEffect(() => {
+    fetchCourseData();
+  }, [id, token, user]);
+
+
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (user && courseData) {
+         user.enrolledCourses?.includes(courseData._id);
+      }
+    };
+  checkEnrollment();
+  }, [courseData, user]);
+  
+  
+
+  const toggleContent = (index) => {
+    setOpenContents((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+
+
+
+
+  //bg-gradient-to-b from-blue-950/30//
+
+  return courseData ? (
+    <>
+      <div className="flex md:flex-row flex-col-reverse gap-10 relative items-start justify-between md:px-36 px-8 md:pt-30 pt-20 text-left">
+        <div className="absolute top-0 left-0 w-full h-section-height -z-1 bg-gradient-to-t from-blue-900/30 "></div>
+
+        {/** left side */}
+        <div className="max-w-xl z-10 text-gray-300">
+          <h1 className="md:text-course-details-heading-large text-course-details-heading-small font-semibold text-white">
+            {courseData.courseTitle}
+          </h1>
+          <p
+            className="pt-4 md:text-base text-sm text-teal-400"
+            dangerouslySetInnerHTML={{
+              __html: courseData.courseDescription.slice(0, 550)
+            }}
+          ></p>
+
+          {/* Review and rating */}
+
+          <div className="flex items-center space-x-2 pt-3 pb-1 text-sm">
+            <p>{calculateRating(courseData)}</p>
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <img
+                  key={i}
+                  src={
+                    i < Math.floor(calculateRating(courseData))
+                      ? assets.star
+                      : assets.star_blank
+                  }
+                  alt="star-rating"
+                  className="w-3.5 h-3.5"
+                />
+              ))}
+            </div>
+            <p className="text-amber-300">
+              {courseData.courseRatings.length}{" "}
+              {courseData.courseRatings.length > 1 ? "ratings" : "rating"}{" "}
+            </p>
+            <p>
+              ({courseData.enrolledStudents.length}{" "}
+              {courseData.enrolledStudents.length > 1 ? "learners" : "learner"})
+            </p>
+
+            {/* Rate the course by popup rating modal */}
+            {isAlreadyEnrolled && user ?(
+              
+                <div className="flex items-center space-x-2">
+                  <p>|</p>
+                  <button className="text-sky-500 text-md font-semibold md:text-sm px-1"
+                    onClick={() => setShowRatingModal(true)
+                    }>
+                    Rate This Course
+                  </button>
+
+                  {showRatingModal && (
+                    <Rating
+                      initialRating={initialRating}
+                      courseTitle={courseData.courseTitle}
+                      InstructorName={courseData.instructor.name}
+                      onRate={handleRatingandThoughts }
+                      onClose={() => setShowRatingModal(false)} />
+                  )}
+                </div>
+              )
+              : null}
+          </div>
+          {/* end of rating popup modal */}
+
+
+          {/* Instructor name and designation */}
+          <div className="flex items-center space-x-3 pt-3 pb-1">
+            {courseData && courseData.instructor?.profileImage ? (
+
+              <img
+              src={courseData.instructor.profileImage}
+              alt="instructor-image"
+              className="w-12 h-12 rounded-full"
+            />
+            ):
+            (
+              <img
+              src={assets.profile_img2}
+              alt="instructor-image"
+              className="w-12 h-12 rounded-full"
+            />
+            ) }
+           
+            <h3>
+              <span className="text-lg font-semibold text-white">{courseData.instructor.name}</span>
+            </h3>
+            <p className="text-gray-400 text-sm">{courseData.instructor.designation},Uber Cab</p>
+          </div>
+
+          {/* Display the progress bar  of overall course
+         if user is enrolled and authenticated, else display the enroll button  */}
+
+          {loadingEnrollment ? (
+            <Loading /> // Show spinner while checking enrollment
+          ) : (
+            //if coursePrice is free display the enroll button for free //
+            (courseData.coursePrice === 0 ?
+              (<button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-md text-md"
+                onClick={handleEnrollmentFree}
+              >
+                Enroll now for Free
+              </button>) : (
+
+                // if coursePrice is not free display the enroll button for paid
+                <button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-md text-md"
+                  onClick={enrolledCourse}
+                >
+                  Enroll now for {currency} {Math.floor(courseData.coursePrice).toFixed(2)}
+                </button>
+
+              )
+            ))}
+
+          <div className="pt-8 text-white">
+            <h2 className="text-xl font-semibold">Course Content</h2>
+            {/* Module Wise Content*/}
+            <div className="pt-5">
+              {courseData?.courseContent?.map((module, index) => (
+                <div
+                  key={index}
+                  className="border border-gray-300 mb-2 rounded"
+                >
+                  <div
+                    className="flex flex-center justify-between px-4 py-3 
+                       cursor-pointer select-none"
+                    onClick={() => {
+                      toggleContent(index);
+                    }}
+                  >
+                    {/* Lock the content if user is not loggedin or enrolled,
+                     if he's enrolled and loggedin then display 
+                     the content */}
+
+                    {isAlreadyEnrolled &&  ( // Show lock icon only if NOT enrolled
+                      <div className="flex items-center gap-2">
+                        <img src={assets.lock_icon} alt="lock-icon" className="w-8 h-8" />
+                      </div>
+                    )}
+
+
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={assets.down_arrow_icon}
+                        alt="arrow-icon"
+                        className={`transform transform-transition 
+                                ${openContents[index] ? "rotate-180" : ""} `}
+                      />
+                      <p className="font-medium md:text-base text-sm">
+                        {module.moduleTitle}
+                      </p>
+                    </div>
+                    <p className="text-sm md:text-default">
+                      {module.moduleContent.length} lessons-
+                      {calculateLessonTime(module)}
+                    </p>
+                  </div>
+
+                  {/* Lesson Content */}
+                  <div
+                    className={`overflow-hidden transtition-all duration-300 bg-white ${openContents[index] ? "max-h-96" : "max-h-0"
+                      }`}
+                  >
+                    <ul className="list-disc md:pl-10 pr-4 py-2 text-gray-950 border-t border-gray-300">
+                      {module.moduleContent.map((lesson, index) => (
+                        <li key={index} className="flex items-start gap-2 py-1">
+                          {/* Show unlock icon OR lock icon */}
+
+                          
+                          {!isAlreadyEnrolled   ? (
+
+                               //conditional rendering of lesson Completed Watching//
+                            <img
+                              src={progressData && progressData.lessonCompleted.includes(lesson.lessonId)?
+
+                                assets.blue_tick_icon : assets.play_icon
+                              }
+                              
+                              alt="unlocked-icon"
+                              className="w-4 h-4 mt-1"
+                            />
+                          ) : (
+                            <img
+                              src={assets.lock_icon}
+                              alt="lock-icon"
+                              className="w-4 h-4 mt-1"
+                            />
+                          )}
+
+                          <div className="flex items-center justify-between w-full text-gray-950 text-xs md:text-default">
+                            {/* Always show lesson title as link if enrolled */}
+                            {!isAlreadyEnrolled ? (
+                              <Link
+                                to={`/player/${courseData._id}/modules/${module.moduleId}/lessons/${lesson.lessonId}`}
+                                className="hover:text-blue-600"
+                              >
+                                {lesson.lessonTitle}
+                              </Link>
+                            ) : (
+                              <p className="text-gray-500">{lesson.lessonTitle}</p>
+                            )}
+
+                            <div className="flex gap-2">
+                              <p>
+                                {humanizeDuration(
+                                  lesson.lessonDuration * 60 * 1000,
+                                  { units: ["h", "m"] }
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/*right side*/}
+        <div className="flex items-center space-x-4 p-4 rounded-2xl w-fit">
+          <img
+            src={courseData.courseThumbnail}
+            alt="thumbnail"
+            className="w-full h-auto rounded-lg  object-cover"
+          />
+        </div>
+      </div>
+      <Footer />
+    </>
+  ) : (
+    <Loading />
+  );
+};
+
+export default CourseDetails;
+ 

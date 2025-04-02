@@ -1,13 +1,15 @@
 const express = require('express');
 const courseRoutes = express.Router();
 const validateToken = require("../Middlewares/validateToken");
-const {Studentaccess} = require("../Middlewares/roleMiddleware");
+const StudentAccess = require("../Middlewares/StudentAccess");
 const { getAllCourses, getCourseDetailById } = require('../Controllers/Students/CourseController');
 
-courseRoutes.use(validateToken);
 
-courseRoutes.get("/all",Studentaccess,getAllCourses);
-courseRoutes.get("/:id",Studentaccess,getCourseDetailById);
+//visible to all users in home page//
+courseRoutes.get("/",getAllCourses);
+
+//to enroll or buy the course, only for students//
+courseRoutes.get("/students/:id",validateToken,StudentAccess,getCourseDetailById);
 
 
 module.exports = courseRoutes;
