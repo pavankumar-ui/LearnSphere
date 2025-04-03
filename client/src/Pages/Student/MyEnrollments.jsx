@@ -3,10 +3,11 @@ import { AppContext } from "../../context/AppContext.jsx";
 import Footer from "../../Components/Student/Footer";
 import { AuthContext } from "../../context/auth-context/index.jsx";
 import { Link } from "react-router-dom";
-import { Line } from 'rc-progress';
+import { Line } from "rc-progress";
 import { toast } from "react-toastify";
 import axios from "axios";
 import Loading from "../../components/Student/Loading.jsx";
+import { assets } from "../../assets/assets/assets.js";
 
 const MyEnrollments = () => {
   const { token, user, isLoggedIn } = useContext(AuthContext);
@@ -21,12 +22,7 @@ const MyEnrollments = () => {
   const [progressArray, setProgressArray] = useState([]);
   const [loading, setLoading] = useState(true);
 
-
-
-
-
-console.log("progressArray in my enrollments",progressArray);
-
+  console.log("progressArray in my enrollments", progressArray);
 
   useEffect(() => {
     if (isLoggedIn && user) {
@@ -34,49 +30,46 @@ console.log("progressArray in my enrollments",progressArray);
     }
   }, [user]);
 
- 
   useEffect(() => {
-    
     const fetchProgress = async () => {
-        try {
-            if (!token) {
-                toast.error("Please login to continue");
-                navigate("/auth");
-                return;
-            }
-
-            const { data } = await axios.post(
-                `${backend_url}/student/get-progress`,{},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (data?.progressData) {
-                setProgressArray(data.progressData); // Set fetched progress
-            } else {
-                setProgressArray([]);
-            }
-        } catch (error) {
-            console.error("Error fetching progress:", error);
-            toast.error("Failed to load progress");
-            setProgressArray([]);
-        } finally {
-            setLoading(false); // Mark loading as complete
+      try {
+        if (!token) {
+          toast.error("Please login to continue");
+          navigate("/auth");
+          return;
         }
+
+        const { data } = await axios.post(
+          `${backend_url}/student/get-progress`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (data?.progressData) {
+          setProgressArray(data.progressData); // Set fetched progress
+        } else {
+          setProgressArray([]);
+        }
+      } catch (error) {
+        console.error("Error fetching progress:", error);
+        toast.error("Failed to load progress");
+        setProgressArray([]);
+      } finally {
+        setLoading(false); // Mark loading as complete
+      }
     };
-          
-    if(token){
+
+    if (token) {
       fetchProgress();
     }
-    
-}, [token]); // Runs only when enrolledCourses updates
+  }, [token]); // Runs only when enrolledCourses updates
 
+  console.log("Debug: progressArray", progressArray);
+  console.log("Debug: enrolledCourses", enrolledCourses);
 
-
-
-console.log("Debug: progressArray", progressArray);
-console.log("Debug: enrolledCourses", enrolledCourses);
-
-{loading ? <Loading/> : null}
+  {
+    loading ? <Loading /> : null;
+  }
   return (
     <>
       <div className="md:px-36 px-8 pt-10">
@@ -106,51 +99,73 @@ console.log("Debug: enrolledCourses", enrolledCourses);
               {enrolledCourses?.map((course, index) => (
                 <tr key={index} className="border-b border-gray-400/20">
                   <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3">
-                  {console.log(`Rendering Course ${course.courseTitle} - Progress:`, progressArray[index])}
+                    {console.log(
+                      `Rendering Course ${course.courseTitle} - Progress:`,
+                      progressArray[index]
+                    )}
                     <img
                       src={course.courseThumbnail}
                       alt="course-thumbnail"
                       className="w-14 sm:w-24 md:w-28"
                     />
                     <div className="flex-1">
-                      <p className="mb-1 max-sm:text-sm">{course.courseTitle}</p>
-          
-                
-  <Line
-    className="bg-gray-300 rounded-full"
-    strokeWidth={2}
-    percent={
-      progressArray[index]?.progress?.totalLessons > 0
-        ? (progressArray[index]?.progress?.lessonCompleted * 100) /
-          progressArray[index]?.progress?.totalLessons
-        : 0
-    }
-  />
+                      <p className="mb-1 max-sm:text-sm">
+                        {course.courseTitle}
+                      </p>
+
+                      <Line
+                        className="bg-gray-300 rounded-full"
+                        strokeWidth={2}
+                        percent={
+                          progressArray[index]?.progress?.totalLessons > 0
+                            ? (progressArray[index]?.progress?.lessonCompleted *
+                                100) /
+                              progressArray[index]?.progress?.totalLessons
+                            : 0
+                        }
+                      />
                       <p className="text-gray-300 text-md md:text-md pt-2">
-                      {progressArray[index]?.progress?.totalLessons > 0
-    ? ((progressArray[index]?.progress.lessonCompleted * 100) /
-     progressArray[index]?.progress?.totalLessons).toFixed(1)
-    : 0}
-  % Completed
-      </p>
+                        {progressArray[index]?.progress?.totalLessons > 0
+                          ? (
+                              (progressArray[index]?.progress.lessonCompleted *
+                                100) /
+                              progressArray[index]?.progress?.totalLessons
+                            ).toFixed(0)
+                          : 0}
+                        % Completed
+                      </p>
                     </div>
                   </td>
-                  <td className="px-4 py-3 max-sm:hidden">{calculateCourseDuration(course)}
-
+                  <td className="px-4 py-3 max-sm:hidden">
+                    {calculateCourseDuration(course)}
                   </td>
                   <td className="px-4 py-3 max-sm:hidden">
-                  {progressArray[index] && `${progressArray[index]?.progress.lessonCompleted} /
+                    {progressArray[index] &&
+                      `${progressArray[index]?.progress.lessonCompleted} /
                    ${progressArray[index]?.progress.totalLessons}`}
                     &nbsp;<span>Lessons</span>
                   </td>
                   <td className="px-4 py-3 max-sm:text-right">
-    <span className={`px-3 sm:px-5 py-1.5 sm:py-2 ${progressArray[index]?.progress?.lessonCompleted /
-                                               progressArray[index]?.progress?.totalLessons === 1 &&
-       "Completed" ? "text-green-500" : "text-red-500"} max-sm:text-xs`}>
-        {progressArray[index]?.progress?.status || "completed" || "OnGoing" }
-    </span>
-</td>
-
+                    {(() => {
+                      // Access the progress data for the current course
+                      const progress = progressArray[index]?.progress;
+                      // Check if progress exists and if all lessons are completed
+                      const isCompleted =
+                        progress &&
+                        progress.lessonCompleted / progress.totalLessons === 1;
+                      return (
+                        <Link to={`/course/${course._id}`}>
+                          <span
+                            className={`px-3 sm:px-5 py-1.5 sm:py-2 ${
+                              isCompleted ? "text-green-500" : "text-red-500"
+                            } max-sm:text-xs`}
+                          >
+                            {isCompleted ? "Completed" : "OnGoing"}<img src={assets.arrow_icon} alt="arrow" className="inline-block ml-1 w-4 h-4 text-gray-500" />
+                          </span>
+                        </Link>
+                      );
+                    })()}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -5,34 +5,40 @@ const cloudinary = require("./cloudinary");
 const path = require("path");
 const s3 = require("./S3Config");
 
-
-
 const upload = multer({
   storage: multer.memoryStorage(), // Only keep memory storage, no argument needed
   fileFilter: (req, file, cb) => {
-    const allowedImages = ['image/jpeg', 'image/png', 'image/jpg'];
-    const allowedFiles = ['application/pdf', 'video/mp4', 'video/mpeg'];
+    const allowedImages = ["image/jpeg", "image/png", "image/jpg"];
+    const allowedFiles = ["application/pdf", "video/mp4", "video/mpeg"];
 
-    if (allowedImages.includes(file.mimetype) || allowedFiles.includes(file.mimetype)) {
+    if (
+      allowedImages.includes(file.mimetype) ||
+      allowedFiles.includes(file.mimetype)
+    ) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, PDF, and MP4 are allowed.'));
+      cb(
+        new Error(
+          "Invalid file type. Only JPEG, PNG, PDF, and MP4 are allowed."
+        )
+      );
     }
   },
-  limits: { fileSize: 80 * 1024 * 1024 } // 80MB limit
+  limits: { fileSize: 80 * 1024 * 1024 }, // 80MB limit
 });
 
 // Adjust field names based on frontend
 const uploadFields = upload.fields([
-  { name: "courseThumbnail", maxCount: 1 },  
-  { name: "lessonFile", maxCount: 6}    // Ensure frontend sends "lessonFile"
+  { name: "courseThumbnail", maxCount: 1 },
+  { name: "lessonFile", maxCount: 6 }, // Ensure frontend sends "lessonFile"
 ]);
-
 
 const ProfileField = upload.single("profileImage");
 
 const uploadToS3 = async (file) => {
-  const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
+  const uniqueName = `${Date.now()}-${Math.round(
+    Math.random() * 1e9
+  )}${path.extname(file.originalname)}`;
 
   const params = {
     Bucket: process.env.AWS_S3_BUCKET_NAME,
@@ -56,15 +62,12 @@ const uploadToS3 = async (file) => {
   return url;
 };*/
 
-
 /*const url = await generatePresignedUrl("lesson-content/1742967029295-363982161.mp4");
-console.log("Pre-signed URL:", url);*/ 
-
-
+console.log("Pre-signed URL:", url);*/
 
 // ✅ Export the Upload Functions
 module.exports = {
-   uploadFields, // Presigned URL Function
-uploadToS3,
-ProfileField         // S3 Upload Function
-}
+  uploadFields, // Presigned URL Function
+  uploadToS3,
+  ProfileField, // S3 Upload Function
+};

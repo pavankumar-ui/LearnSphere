@@ -7,9 +7,7 @@ const crypto = require("crypto");
 const CommonServerError = require("../Utils/CommonServerError.js");
 const { date } = require("joi");
 
-
 const Register = async (req, res, next) => {
-
   console.log("Received request body:", req.body);
 
   const { name, email, password, role } = req.body;
@@ -29,7 +27,7 @@ const Register = async (req, res, next) => {
       name,
       email,
       password: hashedPassword,
-      role
+      role,
     });
     await registerData.save();
 
@@ -41,7 +39,7 @@ const Register = async (req, res, next) => {
   } catch (err) {
     CommonServerError(err, req, res, next);
   }
-}
+};
 
 const Login = async (req, res, next) => {
   const email = req.body.email;
@@ -56,7 +54,7 @@ const Login = async (req, res, next) => {
         .status(400)
         .json({ message: "User does not exist", success: false });
 
-        const checkPassword = user.password;
+    const checkPassword = user.password;
 
     //to check if password is valid//
     const isPasswordValid = await bcrypt.compare(password, checkPassword);
@@ -77,7 +75,7 @@ const Login = async (req, res, next) => {
     return res.status(200).json({
       message: "Login successfully",
       success: true,
-       userId: user._id,
+      userId: user._id,
       role: user.role,
       token: token,
     });
@@ -139,32 +137,31 @@ const updateProfileData = async (req, res, next) => {
     if (req.body.companyName) updatedData.companyName = req.body.companyName;
     if (req.body.designation) updatedData.designation = req.body.designation;
 
- const uploadToCloudinary = async (buffer) => {
-   return new Promise((resolve, reject) => {
-     const stream = cloudinary.uploader.upload_stream(
-       { resource_type: "image" },
-       (error, result) => {
-         if (error) return reject(error);
-         resolve(result);
-       }
-     );
-     stream.end(buffer);
-   });
- };
+    const uploadToCloudinary = async (buffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: "image" },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        stream.end(buffer);
+      });
+    };
 
     // ✅ Handle image upload
     if (req.file) {
-      const imageUrl = await uploadToCloudinary(req.file.buffer);  // ✅ Upload to Cloudinary
+      const imageUrl = await uploadToCloudinary(req.file.buffer); // ✅ Upload to Cloudinary
       console.log("Cloudinary upload result:", imageUrl);
-    
+
       // ✅ Assign the uploaded image URL to profileImage
       if (imageUrl && imageUrl.secure_url) {
-        updatedData.profileImage = imageUrl.secure_url;  
+        updatedData.profileImage = imageUrl.secure_url;
       } else {
         console.error("Image upload failed. No URL returned.");
       }
     }
-    
 
     // ✅ Use `findOneAndUpdate` with proper options
     const changedData = await User.findOneAndUpdate(
@@ -179,16 +176,15 @@ const updateProfileData = async (req, res, next) => {
       success: true,
       user: changedData,
     });
-
   } catch (err) {
-    console.error('Update Profile Error:', err);
+    console.error("Update Profile Error:", err);
     res.status(500).json({
       message: "Failed to update profile",
       success: false,
-      error: err.message
+      error: err.message,
     });
   }
-}
+};
 
 const Logout = async (req, res, next) => {
   const token = req.headers.authorization;

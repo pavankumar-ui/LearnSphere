@@ -4,26 +4,26 @@ const Course = require("../../Models/Course");
 const Payment = require("../../Models/Payment");
 const CourseProgress = require("../../Models/CourseProgress");
 const CommonServerError = require("../../Utils/CommonServerError");
-const {generateSignedUrl} = require("../../Services/SignedURL");
+const { generateSignedUrl } = require("../../Services/SignedURL");
 
 const userEnrolledCourses = async (req, res, next) => {
   const studentId = req.user._id;
 
   try {
-    const user = await User.findById(studentId).populate(
-      "enrolledCourses"
-    );
+    const user = await User.findById(studentId).populate("enrolledCourses");
 
-   if(!user){
-    return res.status(404).json({ success: false, message: "User not found" });
-   }
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
 
-   console.log("Enrolled courses from DB:", user.enrolledCourses);
+    console.log("Enrolled courses from DB:", user.enrolledCourses);
 
     return res.status(200).json({
       message: "Enrolled Courses Fetched Successfully",
       success: true,
-      enrolledCourses:user.enrolledCourses,
+      enrolledCourses: user.enrolledCourses,
     });
   } catch (err) {
     CommonServerError(err, req, res, next);
@@ -33,10 +33,9 @@ const userEnrolledCourses = async (req, res, next) => {
 //debug issues//
 
 const coursePaymentService = async (req, res, next) => {
-  try 
-  {
+  try {
     const { courseId } = req.body;
-    const origin = req.headers.origin || process.env.ORIGIN;
+    const origin = req.headers.origin || process.env.CLIENT_URL;
     const studentId = req.user._id;
     const userData = await User.findById(studentId);
     const courseData = await Course.findById(courseId);
@@ -49,12 +48,7 @@ const coursePaymentService = async (req, res, next) => {
 
     const gstAmount = parseFloat(process.env.STRIPE_GST_AMOUNT);
     const totalAmount = Math.round(courseData.coursePrice * (1 + gstAmount));
-    if (!userData || !courseData) {
-      return res.status(404).json({
-        message: "User or Course Data not found",
-        success: false,
-      });
-    }
+
     const paymentData = {
       courseId: courseData._id,
       userId: studentId,
@@ -84,7 +78,15 @@ const coursePaymentService = async (req, res, next) => {
       },
     ];
 
+    if (!courseData._id || !studentId || !newCoursePayment._id) {
+      return res.status(400).json({
+        message: "Missing critical IDs for payment processing",
+        success: false,
+      });
+    }
+
     // Create Stripe Checkout session
+
     const session = await stripe.checkout.sessions.create({
       success_url: `${origin}/verify-payment?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/course-list`,
@@ -92,7 +94,12 @@ const coursePaymentService = async (req, res, next) => {
       mode: "payment",
       customer_email: userData.email,
       billing_address_collection: "required",
-      metadata: { paymentId: newCoursePayment._id.toString() },
+      metadata: {
+        paymentId: newCoursePayment._id.toString(),
+        courseId: courseData._id.toString(),
+        userId: studentId.toString(),
+      },
+      phone_number_collection: { enabled: true },
     });
 
     return res.status(200).json({ success: true, session_url: session.url });
@@ -101,71 +108,156 @@ const coursePaymentService = async (req, res, next) => {
   }
 };
 
+//verify the stripr payment successful//
 const verifyPaymentStatus = async (req, res, next) => {
   try {
-    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-    const sessionId = req.query.sessionId;
+    console.log("🔥 Verification started. Session ID:", req.query.sessionId);
 
+    // Initialize Stripe with error handling
+    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+    if (!stripe) throw new Error("Stripe initialization failed");
+
+    const sessionId = req.query.sessionId;
     if (!sessionId) {
-      return res.status(400).json({ message: "Session ID is required" });
+      console.error("❌ Missing session ID in request");
+      return res.status(400).json({
+        message: "Session ID is required",
+        success: false,
+      });
     }
+
+    // Retrieve Stripe session with error handling
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (!session) {
-      return res.status(404).json({ message: "Payment session not found" });
+    console.log(
+      "🎯 Stripe Session Metadata:",
+      JSON.stringify(session.metadata, null, 2)
+    );
+    console.log("💳 Payment Status:", session.payment_status);
+
+    // Validate critical metadata
+    if (
+      !session.metadata?.paymentId ||
+      !session.metadata?.userId ||
+      !session.metadata?.courseId
+    ) {
+      console.error("❌ Missing metadata in Stripe session");
+      return res.status(400).json({
+        message: "Invalid payment session metadata",
+        success: false,
+      });
     }
+
+    // Convert metadata to ObjectIds with validation
+    const mongoose = require("mongoose");
+    const convertId = (id, fieldName) => {
+      try {
+        return new mongoose.Types.ObjectId(id);
+      } catch (err) {
+        console.error(`❌ Invalid ${fieldName} format:`, id);
+        throw new Error(`Invalid ${fieldName} format`);
+      }
+    };
+
+    const paymentId = new mongoose.Types.ObjectId(session.metadata.paymentId);
+    const userId = new mongoose.Types.ObjectId(session.metadata.userId);
+    const courseId = new mongoose.Types.ObjectId(session.metadata.courseId);
 
     if (session.payment_status === "paid") {
-      // Update payment record
+      // Check existing payment status first
+      const existingPayment = await Payment.findById(paymentId);
+      if (existingPayment?.paymentStatus === "completed") {
+        console.log("⚠️ Payment already marked as completed");
+        return res.status(200).json({
+          message: "Payment already verified",
+          success: true,
+          courseId,
+        });
+      }
+
+      // Update payment record using converted ID
       const payment = await Payment.findOneAndUpdate(
-        { _id: session.metadata.paymentId },
-        { paymentStatus: "completed" },
-        { new: true }
+        { _id: paymentId },
+        { paymentStatus: "completed", updatedAt: new Date() },
+        { new: true, upsert: false }
       );
 
       if (!payment) {
-        return res.status(404).json({ message: "Payment record not found" });
+        console.error("❌ Payment record not found for ID:", paymentId);
+        return res.status(404).json({
+          message: "Payment record not found",
+          success: false,
+        });
       }
 
-      // Update user's enrolled courses
-      const user = await User.findByIdAndUpdate(
-        payment.userId,
-        { $addToSet: { enrolledCourses: payment.courseId } },
-        { new: true }
+      // Check existing enrollment using converted IDs
+      const user = await User.findById(userId);
+      if (user.enrolledCourses.some((id) => id.equals(courseId))) {
+        console.log("⚠️ User already enrolled in course:", courseId);
+        return res.status(200).json({
+          message: "User already enrolled in this course",
+          success: true,
+          courseId,
+        });
+      }
+
+      // Update user enrollment
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $addToSet: { enrolledCourses: courseId } },
+        { new: true, runValidators: true }
       );
 
-      // Update course enrollment and unlock lessons
-      const course = await Course.findByIdAndUpdate(
-        payment.courseId,
+      // Update course enrollment
+      const updatedCourse = await Course.findByIdAndUpdate(
+        courseId,
         {
-          $addToSet: { enrolledStudents: payment.userId },
-          $set: { "courseContent.$[].moduleContent.$[].lessonLocked": false },
+          $addToSet: { enrolledStudents: userId },
+          $set: {
+            "courseContent.$[].moduleContent.$[].lessonLocked": false,
+            updatedAt: new Date(),
+          },
         },
         {
           new: true,
-          arrayFilters: [], // Required for nested array updates
+          runValidators: true,
         }
       );
+
+      console.log("✅ Successfully updated records:", {
+        payment: payment._id,
+        user: updatedUser._id,
+        course: updatedCourse._id,
+      });
 
       return res.status(200).json({
         message:
           "Payment verified and enrollment successful! Lessons unlocked.",
         success: true,
-        payment,
-        user,
-        course,
+        courseId,
+        paymentId: payment._id,
       });
     } else {
+      console.log("⚠️ Payment not completed for session:", sessionId);
       return res.status(400).json({
-        message: "Payment not completed",
+        message: "Payment not completed. Status: " + session.payment_status,
         success: false,
+        paymentStatus: session.payment_status,
       });
     }
   } catch (err) {
-    // Ensure proper error handling
-    console.error("Payment verification error:", err);
-    return res.status(500).json({
-      message: err.message || "Internal server error",
+    console.error("💥 Critical Error:", {
+      message: err.message,
+      stack: err.stack,
+      query: req.query,
+      metadata: req.metadata,
+    });
+
+    // Return structured error response
+    res.status(500).json({
       success: false,
+      message: err.message || "Payment verification failed",
+      errorType: err.type || "internal_error",
+      code: err.code || "UNKNOWN_ERROR",
     });
   }
 };
@@ -176,12 +268,10 @@ const updateStudentCourseProgress = async (req, res, next) => {
     const { courseId, lessonId, moduleId } = req.body;
 
     if (!courseId || !lessonId || !moduleId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Missing courseId, lessonId, or moduleId",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Missing courseId, lessonId, or moduleId",
+      });
     }
 
     let courseProgress = await CourseProgress.findOne({ userId, courseId });
@@ -224,27 +314,39 @@ const getStudentCourseProgress = async (req, res, next) => {
   try {
     const studentId = req.user._id;
     // Fetch the enrolled courses
-    const enrolledCourses = await User.findById(studentId).populate("enrolledCourses");
+    const enrolledCourses = await User.findById(studentId).populate(
+      "enrolledCourses"
+    );
     if (!enrolledCourses) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
     // Fetch progress for all enrolled courses
     const progressData = await CourseProgress.find({ userId: studentId });
     // Attach progress & determine completion
-    const enrichedCourses = enrolledCourses.enrolledCourses.map(course => {
-      const courseProgress = progressData.find(p => p.courseId.toString() === course._id.toString());
+    const enrichedCourses = enrolledCourses.enrolledCourses.map((course) => {
+      const courseProgress = progressData.find(
+        (p) => p.courseId.toString() === course._id.toString()
+      );
       // Calculate total lessons
-      const totalLessons = course.courseContent.reduce((sum, module) => sum + module.moduleContent.length, 0);
+      const totalLessons = course.courseContent.reduce(
+        (sum, module) => sum + module.moduleContent.length,
+        0
+      );
       // Count completed lessons
-      const completedLessons = courseProgress ? courseProgress.lessonCompleted.length : 0;
+      const completedLessons = courseProgress
+        ? courseProgress.lessonCompleted.length
+        : 0;
       // Mark course as completed if all lessons are done
-      const isCourseCompleted = totalLessons > 0 && completedLessons === totalLessons;
+      const isCourseCompleted =
+        totalLessons > 0 && completedLessons === totalLessons;
       return {
         ...course.toObject(),
         progress: courseProgress
           ? {
               ...courseProgress.toObject(),
-              completed: isCourseCompleted,  // ✅ Update the completed field dynamically
+              completed: isCourseCompleted, // ✅ Update the completed field dynamically
             }
           : { lessonCompleted: [], completed: false }, // Default if no progress found
       };
@@ -252,25 +354,26 @@ const getStudentCourseProgress = async (req, res, next) => {
     return res.status(200).json({
       message: "Enrolled Courses Progress Fetched Successfully",
       success: true,
-      progressData: enrichedCourses.map(course => ({
-          courseId: course._id,
-          courseTitle: course.courseTitle,
-          courseThumbnail: course.courseThumbnail,
-          progress: course.progress ? {
+      progressData: enrichedCourses.map((course) => ({
+        courseId: course._id,
+        courseTitle: course.courseTitle,
+        courseThumbnail: course.courseThumbnail,
+        progress: course.progress
+          ? {
               completed: course.progress.completed,
               lessonCompleted: course.progress.lessonCompleted.length,
-              totalLessons: course.courseContent.reduce((acc, module) => acc + module.moduleContent.length, 0)
-          } : { completed: false, lessonCompleted: 0, totalLessons: 0 }
-      }))
-  });
-  
-
+              totalLessons: course.courseContent.reduce(
+                (acc, module) => acc + module.moduleContent.length,
+                0
+              ),
+            }
+          : { completed: false, lessonCompleted: 0, totalLessons: 0 },
+      })),
+    });
   } catch (err) {
     CommonServerError(err, req, res, next);
   }
-}
-
-
+};
 
 // to enroll the course if the course is free//
 const enrollFreeCourse = async (req, res, next) => {
@@ -364,45 +467,57 @@ const studentRatingandThoughts = async (req, res, next) => {
   }
 };
 
-
-
-
-const streamVideoURL = async (req, res,next) => {
+const streamVideoURL = async (req, res, next) => {
   const { courseId, moduleId, lessonId } = req.query;
 
   if (!courseId || !moduleId || !lessonId) {
-    return res.status(400).json({ success: false, message: "Missing parameters" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing parameters" });
   }
 
   try {
-    console.log(`Fetching lesson: Course: ${courseId}, Module: ${moduleId}, Lesson: ${lessonId}`);
+    console.log(
+      `Fetching lesson: Course: ${courseId}, Module: ${moduleId}, Lesson: ${lessonId}`
+    );
 
     const course = await Course.findById(courseId);
-    if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+    if (!course)
+      return res
+        .status(404)
+        .json({ success: false, message: "Course not found" });
 
-    const module = course.courseContent.find(m => m.moduleId === moduleId);
-    if (!module) return res.status(404).json({ success: false, message: "Module not found" });
+    const module = course.courseContent.find((m) => m.moduleId === moduleId);
+    if (!module)
+      return res
+        .status(404)
+        .json({ success: false, message: "Module not found" });
 
-    const lesson = module.moduleContent.find(l => l.lessonId === lessonId);
-    if (!lesson) return res.status(404).json({ success: false, message: "Lesson not found" });
+    const lesson = module.moduleContent.find((l) => l.lessonId === lessonId);
+    if (!lesson)
+      return res
+        .status(404)
+        .json({ success: false, message: "Lesson not found" });
 
     const lessonUrl = lesson.lessonContent;
-    const fileKey = lessonUrl.split(".com/")[1];  // Extract fileKey
-    if (!fileKey) return res.status(400).json({ success: false, message: "Invalid S3 URL format" });
+    const fileKey = lessonUrl.split(".com/")[1]; // Extract fileKey
+    if (!fileKey)
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid S3 URL format" });
 
     // ✅ 5. Generate pre-signed URL
     const signedUrl = await generateSignedUrl(fileKey);
 
-    res.json({ success: true, videoURL: signedUrl, contentType: fileKey.ContentType });
-
+    res.json({
+      success: true,
+      videoURL: signedUrl,
+      contentType: fileKey.ContentType,
+    });
   } catch (error) {
-   CommonServerError(error, req, res, next);
+    CommonServerError(error, req, res, next);
   }
-}
-
-
-
-
+};
 
 module.exports = {
   userEnrolledCourses,

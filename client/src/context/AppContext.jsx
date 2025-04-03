@@ -18,7 +18,7 @@ const [allCourses,setAllCourses] = useState([])
 const [isInstructor,setIsInstructor] = useState(false)
 const [loadingEnrolledCourses, setLoadingEnrolledCourses] = useState(true);
 const [enrolledCourses,setEnrolledCourses] = useState([])
-const [progress,setProgress] = useState(0);
+const [progress,setProgress] = useState([]);
 const backend_url = import.meta.env.VITE_BACKEND_URL;
 
 
@@ -182,6 +182,13 @@ useEffect(()=>{
         fetchUserEnrolledCourses();
     }
 },[user]);
+
+
+useEffect(()=>{
+    if(user){
+        setIsInstructor(user?.role === "instructor")
+    }
+},[user])
 
 
 

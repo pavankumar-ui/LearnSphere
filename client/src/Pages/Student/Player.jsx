@@ -9,15 +9,14 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import ReactPlayer from "react-player";
 
-
-
 const Player = () => {
   const { id, moduleId, lessonId } = useParams();
-  const { enrolledCourses,
+  const {
+    enrolledCourses,
     loadingEnrolledCourses,
     calculateLessonTime,
     backend_url,
-    updateUserProgress
+    updateUserProgress,
   } = useContext(AppContext);
   const { user, token, isLoggedIn } = useContext(AuthContext);
   const [lessonData, setLessonData] = useState(null);
@@ -25,28 +24,28 @@ const Player = () => {
   const [progressData, setProgressdata] = useState(null);
   const [videoURL, setVideoURL] = useState(null);
 
-
-
   const markLessonAsCompleted = async (lessonId) => {
-    
     try {
-
-      if (!token) {
+      if (!token || !user) {
         toast.error("please login to continue");
         navigate("/auth");
       }
       console.log("marking lesson as completed", lessonId);
 
-      const { data } = await axios.post(`${backend_url}/student/updated-progress`, {
-        courseId: id,
-        lessonId,
-        moduleId,
-      }, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
+      const { data } = await axios.post(
+        `${backend_url}/student/updated-progress`,
+        {
+          courseId: id,
+          lessonId,
+          moduleId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      })
+      );
 
       console.log("Response from server:", data);
 
@@ -61,46 +60,65 @@ const Player = () => {
       console.error("API error:", err.message);
       toast.error(err.message);
     }
+  };
 
-  }
+  /*const getCourseProgress = async () => {
+
+    try {
+
+      if(!token){
+        toast.error("please login to continue");
+        navigate("/auth");
+      }
+      const { data } = await axios.post(`${backend_url}/student/get-progress`,
+        {courseId: id},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      if (data.success) {
+        setProgressdata(data.progressData)
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    }
+  } */
 
   const getCourseProgress = async () => {
     try {
-
-      const { data } = await axios.post(`${backend_url}/student/get-progress`, { courseId: id }, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-      });
+      const { data } = await axios.post(
+        `${backend_url}/student/get-progress`,
+        { courseId: id },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (data.success) {
         console.log("✅ Progress Updated:", data.updatedProgress);
         setProgressdata((prev) => {
           if (!prev) return { lessonCompleted: [lessonId] }; // If prev is null, initialize
 
           //update the progress data globally in AppContext//
-          updateUserProgress(id, data.updatedProgress); 
+          updateUserProgress(id, data.updatedProgress);
 
           return {
             ...prev,
             lessonCompleted: prev.lessonCompleted
               ? [...new Set([...prev.lessonCompleted, lessonId])] // Avoid duplicates
-              : [lessonId]
+              : [lessonId],
           };
         });
-
       } else {
         toast.error(data.message);
       }
     } catch (err) {
       toast.error(err.message);
     }
-
-  }
-
-
-
-
+  };
 
   useEffect(() => {
     try {
@@ -109,67 +127,61 @@ const Player = () => {
         return;
       }
 
-  
       // 2. Find the enrolled course
-      const course = enrolledCourses?.find(course => course._id === id);
+      const course = enrolledCourses?.find((course) => course._id === id);
       if (!course) {
         setLoading(false);
         return;
       }
       console.log("✅ Course found:", course.courseTitle);
-  
+
       // 3. Find the module
-      const module = course.courseContent?.find(module => module.moduleId === moduleId);
+      const module = course.courseContent?.find(
+        (module) => module.moduleId === moduleId
+      );
       if (!module) {
-
         setLoading(false);
         return;
       }
 
-  
       // 4. Find the lesson
-      const lesson = module.moduleContent?.find(lesson => lesson.lessonId === lessonId);
+      const lesson = module.moduleContent?.find(
+        (lesson) => lesson.lessonId === lessonId
+      );
       if (!lesson) {
-
         setLoading(false);
         return;
       }
 
-  
       // 5. Set lesson data
       setLessonData({
         ...lesson,
         moduleTitle: module.moduleTitle,
         courseTitle: course.courseTitle,
-        lessonUrl: lesson.lessonContent
+        lessonUrl: lesson.lessonContent,
       });
-  
+
       setLoading(false);
-  
     } catch (error) {
       setLoading(false);
     }
   }, [enrolledCourses, id, loadingEnrolledCourses, moduleId, lessonId]);
-   // Updated dependencies
-
-
-
+  // Updated dependencies
 
   useEffect(() => {
     if (progressData && lessonData) {
-      setProgressdata(prev => {
+      setProgressdata((prev) => {
         const updatedProgress = {
           ...prev,
           lessonCompleted: prev?.lessonCompleted
             ? [...new Set([...prev.lessonCompleted, lessonData.lessonId])]
-            : [lessonData.lessonId]
+            : [lessonData.lessonId],
         };
         console.log("Updated progressData:", updatedProgress);
         return updatedProgress;
       });
     }
   }, [lessonData?.lessonId]); // Runs when progressData or lessonData changes
-
 
   //stream video effect//
 
@@ -178,7 +190,7 @@ const Player = () => {
       try {
         const { data } = await axios.get(`${backend_url}/student/video-url`, {
           params: { courseId: id, moduleId, lessonId },
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         console.log("API Response:", data);
@@ -199,10 +211,9 @@ const Player = () => {
     fetchVideoUrl();
   }, [id, moduleId, lessonId, backend_url, token]);
 
-  useEffect(()=>{
+  useEffect(() => {
     getCourseProgress();
-  },[])
-
+  }, []);
 
   if (loadingEnrolledCourses) return <Loading />;
 
@@ -218,15 +229,18 @@ const Player = () => {
               {lessonData && lessonData?.lessonTitle}
             </p>
             <span className="text-gray-300 ml-auto px-4 text-xl">
-              {humanizeDuration(lessonData && lessonData?.lessonDuration * 60 * 1000, {
-                units: ["h", "m"],
-              })}
+              {humanizeDuration(
+                lessonData && lessonData?.lessonDuration * 60 * 1000,
+                {
+                  units: ["h", "m"],
+                }
+              )}
             </span>
           </div>
         </div>
 
         <div className="flex-2 justify-center gap-2 py-4 px-3 rounded-md md:px-10 md:py-8 bg-gray-700">
- {/* if uploading content is   pdf then display pdf view r else video  */} 
+          {/* if uploading content is   pdf then display pdf view r else video  */}
           {videoURL && videoURL?.contentType === "application/pdf" ? (
             <iframe
               src={videoURL.signedUrl}
@@ -236,8 +250,7 @@ const Player = () => {
               controls
               allowFullScreen
             ></iframe>
-
-          ) : ( videoURL && videoURL?.contentType === "video/mp4" ? (
+          ) : videoURL && videoURL?.contentType === "video/mp4" ? (
             <ReactPlayer
               url={videoURL.signedUrl}
               controls
@@ -250,17 +263,20 @@ const Player = () => {
             <div className="bg-gray-800 w-full aspect-video flex items-center justify-center">
               <p className="text-gray-400">Video or PDF not available</p>
             </div>
-          ))}
+          )}
           <div className="flex flex-col  justify-evenly gap-3 mt-4 px-4 md:px-10 md:mt-8">
-            <button onClick={() => {
-          console.log("Lesson Data:", lessonData);
-          markLessonAsCompleted(lessonData && lessonData?.lessonId);
-            }
-          } 
-                    className='font-semibold text-teal-400'
-                    
-                    >
-              {progressData && progressData?.lessonCompleted.includes(lessonData?.lessonId) ? 'Completed' : 'Mark Complete'}</button>
+            <button
+              onClick={() => {
+                console.log("Lesson Data:", lessonData);
+                markLessonAsCompleted(lessonData && lessonData?.lessonId);
+              }}
+              className="font-semibold text-teal-400"
+            >
+              {progressData &&
+              progressData?.lessonCompleted?.includes(lessonData?.lessonId)
+                ? "Completed"
+                : "Mark As Complete"}
+            </button>
           </div>
           <Footer />
         </div>

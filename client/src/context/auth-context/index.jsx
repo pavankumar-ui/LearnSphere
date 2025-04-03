@@ -71,6 +71,8 @@ const AuthProvider = ({ children }) => {
         setUser(null);
     }
 
+
+
     useEffect(() => {
         const storedToken = sessionStorage.getItem("token");
         setToken(storedToken);

@@ -40,6 +40,6 @@ const ValidateToken = async (req, res, next) => {
       return res.status(401).json({ error: "Invalid token", success: false });
     }
   }
-}
+};
 
 module.exports = ValidateToken;

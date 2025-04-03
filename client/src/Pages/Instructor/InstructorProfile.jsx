@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const InstructorProfile = () => {
 
-  const { token } = useContext(AuthContext);
+  const { token,user } = useContext(AuthContext);
   const { backend_url } = useContext(AppContext);
 
   // ✅ State for profile data
@@ -25,6 +25,14 @@ const InstructorProfile = () => {
   // ✅ Function to fetch profile data from backend
   const fetchUserProfile = async () => {
     try {
+
+            if(!user || !token){
+              toast.error("please login to continue");
+                navigate("/auth");
+                return;
+            }
+
+
       const { data } = await axios.get(`${backend_url}/auth/profile`, {
         headers: {
           "Authorization": `Bearer ${token}`
@@ -110,7 +118,7 @@ const InstructorProfile = () => {
   }, []);
 
   return (
-    <div className='flex flex-col gap-4 card p-4'>
+    <div className='flex flex-col gap-4  text-gray-700 card p-4'>
       <div className='flex items-center text-2xl font-semibold text-gray-800'>
         <p>My Profile 😎</p>
       </div>

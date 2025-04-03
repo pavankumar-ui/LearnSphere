@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { assets } from '../../assets/assets/assets';
 import { AuthContext } from '../../context/auth-context';
-import { AppContext } from '../../context/AppContext';
+import { toast } from 'react-toastify';
 
 const Rating = ({ initialRating,courseTitle,InstructorName, onRate, onClose }) => {
+  const {user}=useContext(AuthContext);
   const [rating, setRating] = useState(initialRating || 0);
   const [thought, setThought] = useState('');
-  const {user,token} = useContext(AuthContext);
-  const {enrolledCourses} = useContext(AppContext);
 
   const handleRating = (value) => {
     setRating(value);

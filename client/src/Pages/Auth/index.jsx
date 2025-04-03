@@ -110,11 +110,11 @@ const {signInFormData,
 
        if(Regresponse.ok){
         clearAuthData();
-        alert("User Registered Successfully");
+        toast.success("Registration successfull");
          setAuthState("signin");
       }
        if(Regresponse.status === 400){
-        alert("User already exists");
+        toast.success("User already exists");
         clearAuthData(); 
       }
 

@@ -4,18 +4,15 @@ import Navbar from '../../Components/Instructor/Navbar'
 import SideMenu from '../../Components/Instructor/SideMenu'
 const Instructor = () => {
   return (
-    <div className='text-stone-950 min-h-screen bg-white'>
-        <Navbar/>
-        <div className='flex'>
-          <SideMenu/>
-          <div className='flex-1'>
-        {<Outlet/>}
-        
+    <div className="text-default min-h-screen bg-white">
+            <Navbar />
+            <div className='flex'>
+                <SideMenu />
+                <div className='flex-1'>
+                    {<Outlet />}
+                </div>
+            </div>
         </div>
-
-        </div>
-
-    </div>
 
   )
 }

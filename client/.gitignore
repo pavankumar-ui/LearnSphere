@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 #txt
-.messyDetailCode.txt
+messyDetailCode.txt

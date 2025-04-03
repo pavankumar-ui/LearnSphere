@@ -1,18 +1,18 @@
-import React from 'react'
-import { assets } from '../../assets/assets/assets'
+import React from "react";
+import { assets } from "../../assets/assets/assets";
 
+const ContentIcon = ({ lessonDetails }) => {
+  const fileType = lessonDetails.lessonFile?.type;
 
-const ContentIcon = ({lessonDetails,lesson}) => {
- 
- const fileType = lessonDetails.lessonFile?.type;
- 
-    return (
+  return (
     <>
-     { lessonDetails.lessonFile.type && lessonDetails.lessonFile.type === 'application/pdf' ?
-                             (<img src={assets.pdf_icon} alt="file_icon" className='w-6' />) :
-                              ( <img src={assets.play_icon} alt="video_icon" className='w-6' />)}
+      {fileType && fileType === "application/pdf" ? (
+        <img src={assets.pdf_icon} alt="file_icon" className="w-6" />
+      ) : (
+        <img src={assets.play_icon} alt="video_icon" className="w-6" />
+      )}
     </>
-  )
-}
+  );
+};
 
-export default ContentIcon
+export default ContentIcon;
