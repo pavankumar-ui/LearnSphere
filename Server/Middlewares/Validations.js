@@ -47,7 +47,7 @@ const lessonJoiSchema = Joi.object({
   const courseJoiSchema = Joi.object({
     courseTitle: Joi.string().required(),
     courseDescription: Joi.string().required(),
-    courseThumbnail: Joi.string().optional(),
+    courseThumbnail: Joi.string().required(),
     courseCategory: Joi.string().required(),
     isPublished: Joi.boolean().default(true),
     coursePrice: Joi.number().optional(),

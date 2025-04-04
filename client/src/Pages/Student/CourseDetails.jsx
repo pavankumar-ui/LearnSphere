@@ -83,6 +83,7 @@ const CourseDetails = () => {
           return toast.error("Please login to continue");
         }
 
+        //Enable this when comes to payment session,because it is blocked by csp in stripe networks//
         // Set the Content-Security-Policy header to avoid blockage while performing a payment session//
         /* document.head.querySelector("meta[http-equiv='Content-Security-Policy']").setAttribute(
             "content",
@@ -108,7 +109,7 @@ const CourseDetails = () => {
                 toast.success("Payment confirmed! Enrollment successful");
               }
             } catch (error) {
-              console.error("Payment verification failed:", error);
+             toast.error(err.response?.data?.message || "payment failed");
             }
           }, 3000);
         }
@@ -161,7 +162,6 @@ const CourseDetails = () => {
         setProgress(null);
       }
     } catch (error) {
-      console.error("Error fetching progress:", error);
       toast.error("Failed to load progress");
       setProgress(null);
     } finally {
@@ -174,8 +174,6 @@ const CourseDetails = () => {
     if (!fetchCalled.current) {
       fetchCalled.current = true;
       fetchUserEnrolledCourses(); // ✅ Fetch only once
-      console.log("fetchUserEnrolledCourses called");
-      //console.log(fetchUserEnrolledCourses());
     }
     if (enrolledCourses) {
       const isEnrolled = enrolledCourses.some(

@@ -52,18 +52,6 @@ const uploadToS3 = async (file) => {
   return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueName}`;
 };
 
-/*const generatePresignedUrl = async (fileKey) => {
-  const command = new GetObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: fileKey
-  });
-
-  const url = await getSignedUrl(S3Client, command, { expiresIn: 3600 });  // URL valid for 1 hour
-  return url;
-};*/
-
-/*const url = await generatePresignedUrl("lesson-content/1742967029295-363982161.mp4");
-console.log("Pre-signed URL:", url);*/
 
 // ✅ Export the Upload Functions
 module.exports = {

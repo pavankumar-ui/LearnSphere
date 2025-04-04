@@ -22,7 +22,6 @@ const MyEnrollments = () => {
   const [progressArray, setProgressArray] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  console.log("progressArray in my enrollments", progressArray);
 
   useEffect(() => {
     if (isLoggedIn && user) {
@@ -64,8 +63,6 @@ const MyEnrollments = () => {
     }
   }, [token]); // Runs only when enrolledCourses updates
 
-  console.log("Debug: progressArray", progressArray);
-  console.log("Debug: enrolledCourses", enrolledCourses);
 
   {
     loading ? <Loading /> : null;
@@ -99,10 +96,7 @@ const MyEnrollments = () => {
               {enrolledCourses?.map((course, index) => (
                 <tr key={index} className="border-b border-gray-400/20">
                   <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3">
-                    {console.log(
-                      `Rendering Course ${course.courseTitle} - Progress:`,
-                      progressArray[index]
-                    )}
+                    
                     <img
                       src={course.courseThumbnail}
                       alt="course-thumbnail"

@@ -30,7 +30,7 @@ const Player = () => {
         toast.error("please login to continue");
         navigate("/auth");
       }
-      console.log("marking lesson as completed", lessonId);
+  
 
       const { data } = await axios.post(
         `${backend_url}/student/updated-progress`,
@@ -47,17 +47,17 @@ const Player = () => {
         }
       );
 
-      console.log("Response from server:", data);
+    
 
       if (data.success) {
         toast.success(data.message);
         await getCourseProgress();
       } else {
         toast.error(data.message);
-        console.error(data.message);
+        
       }
     } catch (err) {
-      console.error("API error:", err.message);
+      
       toast.error(err.message);
     }
   };
@@ -98,7 +98,7 @@ const Player = () => {
         }
       );
       if (data.success) {
-        console.log("✅ Progress Updated:", data.updatedProgress);
+       
         setProgressdata((prev) => {
           if (!prev) return { lessonCompleted: [lessonId] }; // If prev is null, initialize
 
@@ -123,7 +123,7 @@ const Player = () => {
   useEffect(() => {
     try {
       if (loadingEnrolledCourses) {
-        console.log("Courses are still loading...");
+        <Loading />
         return;
       }
 
@@ -133,7 +133,7 @@ const Player = () => {
         setLoading(false);
         return;
       }
-      console.log("✅ Course found:", course.courseTitle);
+     
 
       // 3. Find the module
       const module = course.courseContent?.find(
@@ -177,7 +177,7 @@ const Player = () => {
             ? [...new Set([...prev.lessonCompleted, lessonData.lessonId])]
             : [lessonData.lessonId],
         };
-        console.log("Updated progressData:", updatedProgress);
+        
         return updatedProgress;
       });
     }
@@ -193,7 +193,7 @@ const Player = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("API Response:", data);
+        
 
         if (data.success) {
           setVideoURL(data.videoURL);
@@ -201,7 +201,6 @@ const Player = () => {
           toast.error(data.message);
         }
       } catch (error) {
-        console.error("Error fetching video URL:", error);
         toast.error("Failed to load video");
       } finally {
         setLoading(false);
@@ -267,7 +266,6 @@ const Player = () => {
           <div className="flex flex-col  justify-evenly gap-3 mt-4 px-4 md:px-10 md:mt-8">
             <button
               onClick={() => {
-                console.log("Lesson Data:", lessonData);
                 markLessonAsCompleted(lessonData && lessonData?.lessonId);
               }}
               className="font-semibold text-teal-400"

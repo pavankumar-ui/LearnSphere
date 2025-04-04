@@ -18,7 +18,7 @@ const userEnrolledCourses = async (req, res, next) => {
         .json({ success: false, message: "User not found" });
     }
 
-    console.log("Enrolled courses from DB:", user.enrolledCourses);
+    
 
     return res.status(200).json({
       message: "Enrolled Courses Fetched Successfully",
@@ -55,10 +55,7 @@ const coursePaymentService = async (req, res, next) => {
       totalAmount,
     };
 
-    /*  console.log("origin headers", origin);
-    console.log("STRIPE_GST_AMOUNT:", process.env.STRIPE_GST_AMOUNT);
-    console.log("coursePrice:", courseData.coursePrice);
-    console.log("TotalAmount:", totalAmount); */
+ 
 
     const newCoursePayment = await Payment.create(paymentData);
     //Stripe payment Service Initialize//
@@ -111,7 +108,7 @@ const coursePaymentService = async (req, res, next) => {
 //verify the stripr payment successful//
 const verifyPaymentStatus = async (req, res, next) => {
   try {
-    console.log("🔥 Verification started. Session ID:", req.query.sessionId);
+   
 
     // Initialize Stripe with error handling
     const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -119,7 +116,7 @@ const verifyPaymentStatus = async (req, res, next) => {
 
     const sessionId = req.query.sessionId;
     if (!sessionId) {
-      console.error("❌ Missing session ID in request");
+     
       return res.status(400).json({
         message: "Session ID is required",
         success: false,
@@ -128,11 +125,6 @@ const verifyPaymentStatus = async (req, res, next) => {
 
     // Retrieve Stripe session with error handling
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    console.log(
-      "🎯 Stripe Session Metadata:",
-      JSON.stringify(session.metadata, null, 2)
-    );
-    console.log("💳 Payment Status:", session.payment_status);
 
     // Validate critical metadata
     if (
@@ -140,7 +132,7 @@ const verifyPaymentStatus = async (req, res, next) => {
       !session.metadata?.userId ||
       !session.metadata?.courseId
     ) {
-      console.error("❌ Missing metadata in Stripe session");
+      
       return res.status(400).json({
         message: "Invalid payment session metadata",
         success: false,
@@ -153,7 +145,6 @@ const verifyPaymentStatus = async (req, res, next) => {
       try {
         return new mongoose.Types.ObjectId(id);
       } catch (err) {
-        console.error(`❌ Invalid ${fieldName} format:`, id);
         throw new Error(`Invalid ${fieldName} format`);
       }
     };
@@ -166,7 +157,7 @@ const verifyPaymentStatus = async (req, res, next) => {
       // Check existing payment status first
       const existingPayment = await Payment.findById(paymentId);
       if (existingPayment?.paymentStatus === "completed") {
-        console.log("⚠️ Payment already marked as completed");
+       
         return res.status(200).json({
           message: "Payment already verified",
           success: true,
@@ -182,7 +173,6 @@ const verifyPaymentStatus = async (req, res, next) => {
       );
 
       if (!payment) {
-        console.error("❌ Payment record not found for ID:", paymentId);
         return res.status(404).json({
           message: "Payment record not found",
           success: false,
@@ -192,7 +182,6 @@ const verifyPaymentStatus = async (req, res, next) => {
       // Check existing enrollment using converted IDs
       const user = await User.findById(userId);
       if (user.enrolledCourses.some((id) => id.equals(courseId))) {
-        console.log("⚠️ User already enrolled in course:", courseId);
         return res.status(200).json({
           message: "User already enrolled in this course",
           success: true,
@@ -223,11 +212,7 @@ const verifyPaymentStatus = async (req, res, next) => {
         }
       );
 
-      console.log("✅ Successfully updated records:", {
-        payment: payment._id,
-        user: updatedUser._id,
-        course: updatedCourse._id,
-      });
+      
 
       return res.status(200).json({
         message:
@@ -237,7 +222,6 @@ const verifyPaymentStatus = async (req, res, next) => {
         paymentId: payment._id,
       });
     } else {
-      console.log("⚠️ Payment not completed for session:", sessionId);
       return res.status(400).json({
         message: "Payment not completed. Status: " + session.payment_status,
         success: false,
@@ -245,12 +229,6 @@ const verifyPaymentStatus = async (req, res, next) => {
       });
     }
   } catch (err) {
-    console.error("💥 Critical Error:", {
-      message: err.message,
-      stack: err.stack,
-      query: req.query,
-      metadata: req.metadata,
-    });
 
     // Return structured error response
     res.status(500).json({
@@ -477,9 +455,6 @@ const streamVideoURL = async (req, res, next) => {
   }
 
   try {
-    console.log(
-      `Fetching lesson: Course: ${courseId}, Module: ${moduleId}, Lesson: ${lessonId}`
-    );
 
     const course = await Course.findById(courseId);
     if (!course)

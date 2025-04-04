@@ -22,17 +22,13 @@ const generateSignedUrl = async (fileKey) => {
 
   const metadata = await s3Client.send(command);
   const contentType = metadata.ContentType;
-  console.log("COntent Type:", contentType);
 
   try {
-    console.log(`Generating signed URL for ${fileKey}`);
     const signedUrl = await getSignedUrl(s3Client, command, {
       expiresIn: 3600,
     });
-    console.log("Signed URL:", signedUrl);
     return { signedUrl, contentType };
   } catch (error) {
-    console.error("Error generating signed URL:", error);
     throw error;
   }
 };

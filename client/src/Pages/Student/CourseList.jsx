@@ -24,7 +24,7 @@ const CourseList = () => {
   }
 
   useEffect(() => {
-    console.log("all courses", allCourses);
+    
 
     if (allCourses && allCourses.length > 0) {
       let tempCourses = [...allCourses]; // Copy array properly
@@ -46,8 +46,7 @@ const CourseList = () => {
       setFilteredCourse(tempCourses);
     }
 
-    console.log("Active Category:", activeCategory);
-    console.log("Search Input:", input);
+   
   }, [input, allCourses, activeCategory]);  // ✅ Dependency updated
 
   if (!user || Object.keys(user).length === 0) {

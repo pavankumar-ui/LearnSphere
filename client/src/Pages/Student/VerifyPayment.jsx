@@ -22,7 +22,6 @@ const VerifyPayment = () => {
 
     setLoading(true);
     try {
-      console.log("📡 Sending verification request for session:", sessionId);
       const { data } = await axios.get(
         `${backend_url}/student/verify-payment`,
         {

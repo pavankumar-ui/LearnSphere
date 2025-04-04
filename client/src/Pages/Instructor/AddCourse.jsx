@@ -262,6 +262,7 @@ const AddCourse = () => {
             type="text"
             onChange={(e) => setCourseTitle(e.target.value)}
             value={courseTitle}
+            name="courseTitle"
             placeholder="enter course Title"
             className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500"
             required

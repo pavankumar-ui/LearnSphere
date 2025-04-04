@@ -10,9 +10,6 @@ const addNewCourse = async (req, res, next) => {
     const { courseData } = req.body;
     const InstructorId = req.user._id;
 
-    console.log("Received file:", req.file);
-    console.log("Received body:", req.body);
-
     // ✅ Access uploaded files (Buffer-based handling)
     const imageFile = req.files["courseThumbnail"]
       ? req.files["courseThumbnail"][0]
@@ -49,7 +46,6 @@ const addNewCourse = async (req, res, next) => {
     // ✅ Upload PDF/Video to S3 (AWS SDK v3)
     const lessonUrl = await uploadToS3(lessonFile);
 
-    //console.log("Lesson URL:", lessonUrl);
 
     // ✅ Parse Course Data
     let parsedCourseData;
@@ -91,7 +87,6 @@ const addNewCourse = async (req, res, next) => {
 const getInstructorCourses = async (req, res, next) => {
   try {
     const instructor = req.user._id;
-    console.log(instructor);
     const courses = await Course.find({ instructor });
 
     if (courses.length === 0) {
