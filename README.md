@@ -3,7 +3,7 @@
 
 Enable Users to learn and teach online by uploading recorded videos and PDF notes. This project is built using the MERN stack (MongoDB, Express.js, React, Node.js) and utilizes various technologies and libraries to provide a seamless learning experience.  🚀 📚 🎓 💻 🌐
 
-## Table of Contents
+## Table of Contents 📝
 
 1. Features
 2. getting started
@@ -20,7 +20,7 @@ b. Prerequisites to be installed in the machine.
 6.  Dependencies Usage
 
 
-## 1.Features
+## 1.Features 🌟
 
 - User Authentication and Authorization using JWT.
 
@@ -47,7 +47,7 @@ b. Prerequisites to be installed in the machine.
 - Used JOI for validation of data.
 
 
-## Project Structure
+## Project Structure 📂
 
 ```
 client
@@ -202,7 +202,7 @@ client
 
  ```
 
- # Frontend Project Structure
+ # Frontend Project Structure  
  
  -  assets - Contains images,icons and svg's required for the project.
  -  components - Contains all the reusable components used in the project like Navbar,Footer,CourseCard maintaining folders for  Instructor and students etc.
@@ -231,7 +231,7 @@ client
  - README.md - Contains the documentation of the application.
  - .env - Contains the environment variables of the application.
 
-## 2.Getting Started
+## 2.Getting Started  
 
 ### a.Technologies/tools Used
 
@@ -269,7 +269,7 @@ client
 
 ---
 
-### b.Prerequisites to be installed in the machine.
+### b.Prerequisites to be installed in the machine. 📦
 
 - Make sure your Node.js version to be installed more than 18, not below versions.
 - Make sure to install React version to be more than 18, not below versions.
@@ -281,7 +281,7 @@ client
 
 ---
 
-## 3.Setup instructions and installation of packages.
+## 3.Setup instructions and installation of packages. 🔧
 
 _Step1_: Create the repository in the github and link to your machine with your specific drive.
 
@@ -312,7 +312,7 @@ _Step 7_ : Now you can use the application.
 
 
 
-## 4.  API Usage and Endpoints
+## 4.  API Usage and Endpoints 🔥
 
 The Prefix is used for the API endpoints.
 `/api/v1/WebSphere/`
@@ -340,7 +340,7 @@ The Prefix is used for the API endpoints.
 | ---------- | ------------------------    | --------------------------------               | --------       |
 
 
-## Middlewares Used:
+## Middlewares Used: 🔑
 
 1. **validateToken** - A middleware function that validates the token and checks if the user is authenticated.
 2. **Validations.js** - A middleware function that validates the data using Joi.
@@ -349,31 +349,11 @@ The Prefix is used for the API endpoints.
 5. **tokenExpire** - A middleware function that checks if the token has expired.
 
 
-## 4.  API Usage and Endpoints
-The Prefix is used for the API endpoints.
-`/api/v1/WebSphere/`
-
-1. **POST** `/auth/Login` - To Login the User
-2. **PUT** `/auth/Logout` - To Logout the User
-3. **PUT** `/auth/profile` - To Update the User Profile
-4. **GET** `/auth/profile` - To Get the User Profile
-5. **POST** `/auth/Register` - To Register the User
-6. **POST** `/Instructor/courses` - To Add a new course
-7. **GET** `/Instructor/courses` - To fetch a course added
-8. **GET** `/student/courses/:id` - To fetch a course detail
-9. **GET** `/student/courses/` - To Display all Courses
-10. **GET** `/student/enrolled` - To view enrolled course for students
-11. **PUT** `/student/free-enrollment` - To Enroll a course without payment 
-12. **POST** `/student/get-progress` - To see the marked lesson update
-13. **POST** `/student/payment` - To make a payment to enroll the course
-14. **GET** `/student/verify-payment` - To verify a payment to view enrolled course
-15. **POST** `/student/rating` - To rate and review the course
-16. **POST** `/student/updated-progress` - To mark the lesson as completed
-17. **GET** `/student/video-url` - To Stream the video or display notes material using Signed Object URL.
 
 
 
-## 5.  Models Used in the Project
+
+## 5.  Models Used in the Project 🔑
 
 1. **User** - A Mongoose model that represents a user in the system.(Student and Instructor)
 2. **Course** - A Mongoose model that represents a course in the system having nested modules and lessons.
@@ -383,7 +363,7 @@ The Prefix is used for the API endpoints.
 
 
 
-## 6.  Dependencies Usage
+## 6.  Dependencies Usage 🔑
 
 ***************Frontend Dependencies***************
 1. - [`reactjs`](https://www.npmjs.com/package/react) - A JavaScript library for building user interfaces.
