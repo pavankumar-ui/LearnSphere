@@ -1,6 +1,7 @@
-# LearnSphere:An Online Learning Platform for Students (MERN Fullstack Project) 🚀    
+# LearnSphere:An Online Learning Platform for Students (MERN Fullstack Project) 🚀  
+  
 
-Enable Users to learn and teach online by uploading recorded videos and PDF notes.
+Enable Users to learn and teach online by uploading recorded videos and PDF notes. This project is built using the MERN stack (MongoDB, Express.js, React, Node.js) and utilizes various technologies and libraries to provide a seamless learning experience.  🚀 📚 🎓 💻 🌐
 
 ## Table of Contents
 
