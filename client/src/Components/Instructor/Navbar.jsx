@@ -24,7 +24,7 @@ const Navbar = () => {
   return (
     <div className="flex items-center justify-between px-4 bg-gray-100 md:px-8 border-b border-gray-300 py-3">
       {/* Logo */}
-      <Link to="/">
+      <Link to="/instructor">   {/* Link to the instructor dashboard */}
         <div className="flex items-center gap-1">
           <img
             src={assets.logo}

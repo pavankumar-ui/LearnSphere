@@ -74,6 +74,8 @@ const CourseDetails = () => {
         if (data.success) {
           await fetchCourseData();
           toast.success("Enrolled successfully!");
+          await fetchUserEnrolledCourses();
+          navigate("/my-enrollments");
         }
       } else {
         if (!token) {
