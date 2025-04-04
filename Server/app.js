@@ -28,6 +28,8 @@ app.use((req, res, next) => {
 
 app.use("/api/v1/WebSphere/", indexRoutes);
 
+app.get("/api/v1/WebSphere/working",(req,res)=>res.json({message:"i am working in vercel"}));
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
