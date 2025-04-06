@@ -10,7 +10,9 @@ const userEnrolledCourses = async (req, res, next) => {
   const studentId = req.user._id;
 
   try {
-    const user = await User.findById(studentId).populate("enrolledCourses");
+    const user = await User.findById(studentId)
+                           .populate("enrolledCourses")
+                           .lean();
 
     if (!user) {
       return res

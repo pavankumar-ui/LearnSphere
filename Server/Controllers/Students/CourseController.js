@@ -10,6 +10,14 @@ const getAllCourses = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .populate({ path: "instructor" });
 
+      if(!courses || courses.length === 0) {
+        return res.status(200).json({
+          message: "No Courses Available",
+          success: true,
+          courses: [],
+        });
+      }
+
     return res.status(200).json({
       message: "Courses fetched Successfully",
       success: true,
@@ -29,8 +37,8 @@ const getCourseDetailById = async (req, res, next) => {
       path: "instructor",
     });
 
-    courseDetail.courseContent.forEach((module) => {
-      module.moduleContent.forEach((lesson) => {
+    courseDetail.courseContent.map((module) => {
+      module.moduleContent.map((lesson) => {
         if (lesson.lessonLocked === true) {
           lesson.lessonContent = "Locked";
         } else {
