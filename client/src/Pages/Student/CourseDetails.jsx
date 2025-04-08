@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { AppContext } from "../../context/AppContext";
-import Loading from "../../components/Student/Loading";
+import Loading from '../../Components/Student/Loading';
 import { assets } from "../../assets/assets/assets";
 import humanizeDuration from "humanize-duration";
 import { Link, useParams, useNavigate } from "react-router-dom";

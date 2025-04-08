@@ -4,7 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { AppContext } from "../../context/AppContext";
 import { AuthContext } from "../../context/auth-context";
-import Loading from "../../components/Student/Loading";
+import Loading from "../../Components/Student/Loading";
 
 const VerifyPayment = () => {
   const [searchParams] = useSearchParams();

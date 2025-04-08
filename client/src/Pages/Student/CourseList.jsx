@@ -6,7 +6,7 @@ import SearchBar from '../../Components/Student/SearchBar';
 import CourseCard from '../../Components/Student/CourseCard';
 import { assets } from '../../assets/assets/assets';
 import Footer from '../../Components/Student/Footer';
-import Loading from '../../components/Student/Loading';
+import Loading from '../../Components/Student/Loading';
 
 const CourseList = () => {
   const { navigate, allCourses } = useContext(AppContext);

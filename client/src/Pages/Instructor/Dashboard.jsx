@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import Loading from "../../components/Student/Loading";
+import Loading from "../../Components/Student/Loading.jsx";
 import { AppContext } from "../../context/AppContext.jsx";
 import { AuthContext } from "../../context/auth-context";
 import axios from "axios";
@@ -11,10 +11,6 @@ const Dashboard = () => {
 
   const [courses, setCourses] = useState(null);
   const [instructorName, setInstructorName] = useState({ name: "" });
-
-
-
-
 
 
   const fetchInstructorCourses = async () => {

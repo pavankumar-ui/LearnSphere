@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { Line } from "rc-progress";
 import { toast } from "react-toastify";
 import axios from "axios";
-import Loading from "../../components/Student/Loading.jsx";
+import Loading from "../../Components/Student/Loading.jsx";
 import { assets } from "../../assets/assets/assets.js";
 
 const MyEnrollments = () => {
