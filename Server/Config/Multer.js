@@ -1,7 +1,7 @@
 const multer = require("multer");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("./cloudinary");
+const cloudinary = require("./Cloudinary");
 const path = require("path");
 const s3 = require("./S3Config");
 

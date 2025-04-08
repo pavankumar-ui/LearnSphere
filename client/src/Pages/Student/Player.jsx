@@ -30,8 +30,6 @@ const Player = () => {
         toast.error("please login to continue");
         navigate("/auth");
       }
-  
-
       const { data } = await axios.post(
         `${backend_url}/student/updated-progress`,
         {
@@ -243,7 +241,7 @@ const Player = () => {
           {videoURL && videoURL?.contentType === "application/pdf" ? (
             <iframe
               src={videoURL.signedUrl}
-              width="1400px"
+              width="1300px"
               height="600px"
               title="PDF Viewer"
               controls
@@ -270,10 +268,10 @@ const Player = () => {
               }}
               className="font-semibold text-teal-400"
             >
-              {progressData &&
-              progressData?.lessonCompleted?.includes(lessonData?.lessonId)
-                ? "Completed"
-                : "Mark As Complete"}
+              {!progressData?.lessonCompleted?.includes(lessonData?.lessonId)
+                  ? "Mark As Complete"
+                    : "Completed"
+                    }
             </button>
           </div>
           <Footer />
