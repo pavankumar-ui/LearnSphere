@@ -1,4 +1,4 @@
-const cloudinary = require("../Config/cloudinary");
+const cloudinary = require("../Config/Cloudinary");
 const path = require("path");
 const Course = require("../Models/Course");
 const { uploadToS3 } = require("../Config/Multer");
