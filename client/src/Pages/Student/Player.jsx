@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import { AppContext } from "../../context/AppContext.jsx";
 import { useParams } from "react-router-dom";
-import Loading from "../../components/Student/Loading";
+import Loading from "../../Components/Student/Loading.jsx";
 import humanizeDuration from "humanize-duration";
 import Footer from "../../Components/Student/Footer";
 import { AuthContext } from "../../context/auth-context/index.jsx";
