@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 const Loading = () => {
-  /* const {path} = useParams();
+   const {path} = useParams();
   const navigate = useNavigate();
 
   useEffect(()=>{
@@ -13,7 +13,7 @@ const Loading = () => {
       },5000)
       return ()=>clearTimeout(timer)
     }
-  },[])*/
+  },[])
 
   return (
     <div className="min-h-screen flex justify-center items-center">

@@ -55,9 +55,9 @@ const coursePaymentService = async (req, res, next) => {
       courseId: courseData._id,
       userId: studentId,
       totalAmount,
+      paymentStatus: "pending"
     };
 
- 
 
     const newCoursePayment = await Payment.create(paymentData);
     //Stripe payment Service Initialize//
@@ -87,16 +87,18 @@ const coursePaymentService = async (req, res, next) => {
     // Create Stripe Checkout session
 
     const session = await stripe.checkout.sessions.create({
-      success_url: `${origin}/verify-payment?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/loading/my-enrollments`,
       cancel_url: `${origin}/course-list`,
       line_items,
       mode: "payment",
       customer_email: userData.email,
       billing_address_collection: "required",
-      metadata: {
-        paymentId: newCoursePayment._id.toString(),
-        courseId: courseData._id.toString(),
-        userId: studentId.toString(),
+      payment_intent_data: {
+        metadata: {
+          paymentId: newCoursePayment._id.toString(),
+          courseId: courseData._id.toString(),
+          userId: studentId.toString(),
+        }
       },
       phone_number_collection: { enabled: true },
     });
@@ -108,7 +110,7 @@ const coursePaymentService = async (req, res, next) => {
 };
 
 //verify the stripr payment successful//
-const verifyPaymentStatus = async (req, res, next) => {
+/*const verifyPaymentStatus = async (req, res, next) => {
   try {
    
 
@@ -240,7 +242,7 @@ const verifyPaymentStatus = async (req, res, next) => {
       code: err.code || "UNKNOWN_ERROR",
     });
   }
-};
+};*/
 
 const updateStudentCourseProgress = async (req, res, next) => {
   try {
@@ -499,7 +501,6 @@ const streamVideoURL = async (req, res, next) => {
 module.exports = {
   userEnrolledCourses,
   coursePaymentService,
-  verifyPaymentStatus,
   updateStudentCourseProgress,
   getStudentCourseProgress,
   studentRatingandThoughts,

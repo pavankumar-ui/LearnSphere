@@ -5,7 +5,6 @@ const validateToken = require("../Middlewares/validateToken");
 const {
   userEnrolledCourses,
   coursePaymentService,
-  verifyPaymentStatus,
   updateStudentCourseProgress,
   getStudentCourseProgress,
   studentRatingandThoughts,
@@ -18,7 +17,7 @@ studentRoutes.use(validateToken);
 
 studentRoutes.get("/enrolled", StudentAccess, userEnrolledCourses);
 studentRoutes.post("/payment", StudentAccess, coursePaymentService);
-studentRoutes.get("/verify-payment", StudentAccess, verifyPaymentStatus);
+//studentRoutes.get("/verify-payment", StudentAccess, verifyPaymentStatus);
 studentRoutes.put("/free-enrollment", StudentAccess, enrollFreeCourse);
 //course progress routes//
 studentRoutes.post(

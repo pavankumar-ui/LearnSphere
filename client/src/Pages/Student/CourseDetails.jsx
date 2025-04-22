@@ -44,9 +44,9 @@ const CourseDetails = () => {
 
       if (data.success) {
         setCourseData(data.courseDetail);
-        const isEnrolled = data.courseDetail.enrolledStudents.includes(
-          user?._id
-        );
+        const isEnrolled = data.courseDetail.enrolledStudents
+          .map(String)
+          .includes(String(user?._id));
         setIsAlreadyEnrolled(isEnrolled);
       }
     } catch (err) {
@@ -77,7 +77,8 @@ const CourseDetails = () => {
           await fetchUserEnrolledCourses();
           navigate("/my-enrollments");
         }
-      } else {
+      }
+      else {
         if (!token) {
           navigate("/login");
           return toast.error("Please login to continue");
@@ -106,10 +107,10 @@ const CourseDetails = () => {
                 clearInterval(checkInterval);
                 paymentWindow.close();
                 await fetchCourseData();
-                toast.success("Payment confirmed! Enrollment successful");
+                toast.success(data && data?.message);
               }
             } catch (error) {
-             toast.error(err.response?.data?.message || "payment failed");
+              toast.error(error.response?.data?.message || "payment failed");
             }
           }, 3000);
         }
@@ -353,9 +354,8 @@ const CourseDetails = () => {
 
                 {/* Lessons List */}
                 <div
-                  className={`${
-                    openContents[index] ? "max-h-[500px]" : "max-h-0"
-                  } overflow-hidden transition-all`}
+                  className={`${openContents[index] ? "max-h-[500px]" : "max-h-0"
+                    } overflow-hidden transition-all`}
                 >
                   <div className="p-4 bg-white">
                     {module.moduleContent.map((lesson, lessonId) => (

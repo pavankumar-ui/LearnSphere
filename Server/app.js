@@ -6,6 +6,8 @@ const indexRoutes = require("./Routes/index");
 const helmet = require("helmet");
 const app = express();
 const port = process.env.PORT || 5001;
+const webhookController = require('./Controllers/webhooks');
+//const stripeWebhooks = require('./Controllers/webhooks');
 
 const corsOptions = {
   origin: process.env.CLIENT_URL,
@@ -13,7 +15,19 @@ const corsOptions = {
   credentials: true,
   allowedHeaders: ["Authorization", "Content-Type"],
 };
+
+
+
 connectDB();
+
+
+// Webhook route - MUST be before any body parsers
+app.post('/stripe', 
+  express.raw({ type: 'application/json' }), 
+  webhookController.stripeWebhooks
+);
+
+
 app.use(cors(corsOptions));
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 app.use(express.json());
@@ -26,9 +40,14 @@ app.use((req, res, next) => {
   next();
 });
 
+
 app.use("/api/v1/WebSphere/", indexRoutes);
 
+
 app.get("/api/v1/WebSphere/working",(req,res)=>res.json({message:"i am working in vercel"}));
+
+
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
