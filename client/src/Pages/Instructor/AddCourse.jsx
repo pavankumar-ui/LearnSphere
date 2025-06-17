@@ -192,12 +192,17 @@ const AddCourse = () => {
       formData.append("courseThumbnail", image);
       console.log("Appending File:", lessonDetails.lessonFile);
 
-      if (lessonDetails.lessonFile) {
-        formData.append("lessonFile", lessonDetails.lessonFile);
-      } else {
-        console.log("No file selected");
-        toast.error("Lesson file not selected");
-      }
+      modules.forEach((module, moduleIndex) => {
+        module.moduleContent.forEach((lessonFile, lessonIndex) => {
+          if (lessonDetails.lessonFile) {
+            formData.append(
+              `lessonFiles[${moduleIndex}][${lessonIndex}]`,
+              lessonDetails.lessonFile
+            );
+          }
+        });
+      });
+      
       const { data } = await axios.post(
         `${backend_url}/instructor/courses`,
         formData,
@@ -211,7 +216,7 @@ const AddCourse = () => {
 
       if (data.success) {
         toast.success(data.message);
-        navigate("/instructor/courses");
+        navigate("/instructor");
         setCourseTitle("");
         setCourseDescription("");
         setCoursePrice("");
