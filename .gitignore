@@ -1,6 +1,6 @@
 .env
 node_modules
 restricted_code.txt
-Server/Keys/
+./Server/Keys/
 
 .early.coverage
